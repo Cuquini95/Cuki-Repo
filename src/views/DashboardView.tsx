@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { AlertTriangle, ArrowUpRight, BarChart3, CalendarClock, Copy, Package, Plus, SlidersHorizontal, Truck } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ArrowUpRight, BarChart3, CalendarClock, ClipboardCheck, Clock, Copy, FileCheck, Fuel, Package, Plus, ShoppingCart, SlidersHorizontal, Truck, Wrench } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { ROLE_LABELS, useFleet } from '../store/FleetContext';
 import { FleetGroup, RouteState, UserRole } from '../types/fleet';
@@ -44,9 +44,9 @@ const GROUPS: ('Todos' | FleetGroup)[] = [
 
 const ROLE_QUICK_ACTIONS: Record<UserRole, { label: string; section: RouteState['section'] }[]> = {
   gerencia: [
-    { label: 'Aprobar Órdenes de Compra', section: 'purchasing' },
+    { label: 'Compras y aprobaciones', section: 'purchasing' },
     { label: 'Reportes TCO y Costos', section: 'reports' },
-    { label: 'Turnos y Disponibilidad', section: 'operations' },
+    { label: 'Producción y despacho', section: 'operations' },
   ],
   coordinador: [
     { label: 'Programas PM y HSE', section: 'reminders' },
@@ -84,6 +84,21 @@ const ROLE_QUICK_ACTIONS: Record<UserRole, { label: string; section: RouteState[
     { label: 'Flota y Equipos', section: 'vehicles' },
   ],
 };
+
+const ACTION_ICONS = {
+  purchasing: ShoppingCart,
+  reports: BarChart3,
+  operations: Clock,
+  reminders: CalendarClock,
+  'work-orders': Wrench,
+  inspections: ClipboardCheck,
+  tires: Truck,
+  issues: AlertTriangle,
+  vehicles: Truck,
+  parts: Package,
+  fuel: Fuel,
+  audit: FileCheck,
+} as const;
 
 export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onCreateWorkOrder }) => {
   const {
@@ -256,13 +271,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onCrea
     { label: 'Stock bajo', value: lowStockParts.length, detail: 'Inventario general', icon: Package, iconClass: 'bg-blue-50 text-blue-700', section: 'parts' },
   ] as const;
 
+  const role = state.settings.activeRole;
+  const roleTitle = role === 'gerencia' ? 'Dirección de Operaciones' : ROLE_LABELS[role].label;
+  const [primaryWork, ...otherWork] = ROLE_QUICK_ACTIONS[role];
+  const extraActions = [
+    { label: 'Disponibilidad de equipos', section: 'vehicles' },
+    { label: 'Órdenes de trabajo', section: 'work-orders' },
+    { label: 'Inspecciones', section: 'inspections' },
+  ] as const;
+  const quickActions = [...otherWork, ...extraActions.filter((extra) =>
+    !ROLE_QUICK_ACTIONS[role].some((action) => action.section === extra.section)
+  )].slice(0, 4);
+  const primaryWorkIcon = ACTION_ICONS[primaryWork.section as keyof typeof ACTION_ICONS] ?? ArrowUpRight;
+  const awaitingApproval = state.purchaseOrders.filter((order) =>
+    order.status === 'Requisición' || order.status === 'Cotizada'
+  ).length;
+  const PrimaryWorkIcon = primaryWorkIcon;
+
   return (
     <div className="vektor-dashboard space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-xs font-semibold text-blue-800">{state.settings.projectCode} · {state.settings.currency}</p>
+          <p className="text-sm font-semibold text-slate-600">{state.settings.projectCode} · {state.settings.currency}</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-            {activeProfile.name}
+            {activeProfile.isStandard ? roleTitle : activeProfile.name}
           </h1>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -276,6 +308,38 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onCrea
           )}
         </div>
       </div>
+
+      <section aria-label="Mi trabajo" className="space-y-3 !shadow-none">
+        <button type="button" onClick={() => onNavigate({ section: primaryWork.section })}
+          className="vektor-role-action flex min-h-[82px] w-full items-center gap-4 rounded-xl px-4 py-4 text-left sm:min-h-[94px] sm:px-5">
+          <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-white/15">
+            <PrimaryWorkIcon className="size-5" aria-hidden="true" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-base font-bold sm:text-xl">{primaryWork.label}</span>
+            {role === 'gerencia' && (
+              <span className="mt-1 block text-sm text-white/90">
+                {awaitingApproval ? `${awaitingApproval} OC pendientes de aprobación` : 'Sin OC pendientes de aprobación'}
+              </span>
+            )}
+          </span>
+          <ArrowRight className="size-5 shrink-0" aria-hidden="true" />
+        </button>
+        <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
+          {quickActions.map(({ label, section }) => {
+            const Icon = ACTION_ICONS[section as keyof typeof ACTION_ICONS] ?? ArrowUpRight;
+            return (
+              <button key={label} type="button" onClick={() => onNavigate({ section })}
+                className="flex min-w-0 flex-col items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-left text-xs font-semibold text-slate-900 hover:border-blue-400 hover:bg-blue-50/30 sm:min-h-[84px] sm:flex-row sm:items-center sm:gap-3 sm:px-4 sm:text-sm">
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[#eaf0ff] text-[#2856aa]">
+                  <Icon className="size-4" aria-hidden="true" />
+                </span>
+                <span>{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       <div className="flex flex-wrap items-center gap-2">
           <select
@@ -405,16 +469,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onCrea
           </section>
         </div>
       )}
-
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3">
-        <span className="mr-1 text-xs font-semibold text-slate-600">{ROLE_LABELS[state.settings.activeRole].label}</span>
-        {ROLE_QUICK_ACTIONS[state.settings.activeRole].map((action) => (
-          <button key={action.label} type="button" onClick={() => onNavigate({ section: action.section })}
-            className="min-h-9 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-800 hover:bg-slate-50">
-            {action.label}
-          </button>
-        ))}
-      </div>
 
       {/* Primary Row: Cost Chart + Fleet Status */}
       {(isVisible('cost_chart') || isVisible('fleet_status')) && (

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Lock, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Lock, Plus, RotateCcw, Search, Trash2, Truck } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { useFleet } from '../store/FleetContext';
 import { FailureCategory, IssuePriority, RouteState, WorkOrderStatusKey } from '../types/fleet';
@@ -49,6 +49,9 @@ export const WorkOrdersView: React.FC<WorkOrdersViewProps> = ({
   } = useFleet();
 
   const [statusFilter, setStatusFilter] = useState<'Todas' | WorkOrderStatusKey>('Todas');
+  const [priorityFilter, setPriorityFilter] = useState<'Todas' | IssuePriority>('Todas');
+  const [query, setQuery] = useState('');
+  const [previewId, setPreviewId] = useState<string>();
   const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
@@ -85,13 +88,20 @@ export const WorkOrdersView: React.FC<WorkOrdersViewProps> = ({
     }
   }, [selectedWorkOrderId, selectedWo, onSelectWorkOrder]);
 
-  const filtered = useMemo(
-    () =>
-      state.workOrders.filter((w) =>
-        statusFilter === 'Todas' ? true : w.status === statusFilter
-      ),
-    [state.workOrders, statusFilter]
-  );
+  const vehicleById = useMemo(() => new Map(state.vehicles.map((vehicle) => [vehicle.id, vehicle])), [state.vehicles]);
+  const filtered = useMemo(() => {
+    const term = query.trim().toLowerCase();
+    return state.workOrders.filter((order) => {
+      const vehicle = vehicleById.get(order.vehicleId);
+      return (statusFilter === 'Todas' || order.status === statusFilter) &&
+        (priorityFilter === 'Todas' || order.priority === priorityFilter) &&
+        (!term || [order.code, order.summary, vehicle?.code, vehicle?.name].some((value) =>
+          value?.toLowerCase().includes(term)
+        ));
+    });
+  }, [state.workOrders, statusFilter, priorityFilter, query, vehicleById]);
+  const previewedOrder = filtered.find((order) => order.id === previewId) ?? filtered[0];
+  const previewVehicle = previewedOrder ? vehicleById.get(previewedOrder.vehicleId) : undefined;
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -718,111 +728,156 @@ export const WorkOrdersView: React.FC<WorkOrdersViewProps> = ({
     );
   }
 
-  // List View
+  // List and preview share the same filtered set.
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">Órdenes de Trabajo</h1>
-          <p className="mt-0.5 text-sm text-slate-500">
-            Ciclo de mantenimiento correctivo y preventivo con control de mano de obra, consumo de inventario y cierre atómico.
-          </p>
-        </div>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-bold tracking-tight text-slate-900">Órdenes de trabajo</h1>
         <button
           type="button"
           disabled={!can('workorder:manage')}
           onClick={() => setCreateOpen(true)}
-          className="inline-flex h-9 items-center gap-1.5 rounded-md bg-blue-700 px-3.5 text-xs font-medium text-white hover:bg-blue-800 disabled:bg-slate-300 whitespace-nowrap"
+          className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-700 px-4 text-sm font-semibold text-white hover:bg-blue-800 disabled:bg-slate-300"
         >
-          <Plus className="h-4 w-4" />
-          Nueva Orden de Trabajo
+          <Plus className="size-4" aria-hidden="true" /> Nueva orden
         </button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-slate-100/80 p-1 w-fit">
-        {STATUS_TABS.map((tab) => {
-          const count =
-            tab === 'Todas'
-              ? state.workOrders.length
-              : state.workOrders.filter((w) => w.status === tab).length;
-          return (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setStatusFilter(tab)}
-              className={`rounded px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap ${
-                statusFilter === tab
-                  ? 'bg-white text-slate-900 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {tab} <span className="ml-1 font-mono text-[11px] text-slate-400">{count}</span>
-            </button>
-          );
-        })}
-      </div>
+      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <div className="flex flex-wrap gap-x-2 border-b border-slate-200 px-3 sm:px-4" role="group" aria-label="Estado de la orden">
+          {STATUS_TABS.map((tab) => {
+            const count = tab === 'Todas' ? state.workOrders.length : state.workOrders.filter((order) => order.status === tab).length;
+            const active = statusFilter === tab;
+            return (
+              <button key={tab} type="button" onClick={() => setStatusFilter(tab)} aria-pressed={active}
+                className={`inline-flex min-h-11 items-center gap-1.5 border-b-[3px] px-2 text-xs font-semibold ${active ? 'border-[#2867d8] text-[#214e96]' : 'border-transparent text-slate-600 hover:bg-slate-50'}`}>
+                {tab}
+                <span className={`rounded-full px-2 py-0.5 text-[10px] tabular-nums ${active ? 'bg-[#e9f0fd]' : 'bg-slate-100'}`}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-left text-xs">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-              <th className="px-4 py-2.5 font-medium">Folio</th>
-              <th className="px-4 py-2.5 font-medium">Vehículo</th>
-              <th className="px-4 py-2.5 font-medium">Resumen</th>
-              <th className="px-4 py-2.5 font-medium">Estado</th>
-              <th className="px-4 py-2.5 font-medium">Prioridad</th>
-              <th className="px-4 py-2.5 font-medium">Fecha</th>
-              <th className="px-4 py-2.5 text-right font-medium">Costo Total</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filtered.map((wo) => {
-              const veh = state.vehicles.find((v) => v.id === wo.vehicleId);
-              const total = computeWorkOrderTotals(wo).total;
-              return (
-                <tr key={wo.id} className="hover:bg-slate-50/70">
-                  <td className="px-4 py-3 font-mono font-semibold text-blue-700 whitespace-nowrap">
-                    <button
-                      type="button"
-                      onClick={() => onSelectWorkOrder(wo.id)}
-                      className="hover:underline"
-                    >
-                      {wo.code}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-slate-800">
-                    {veh ? `${veh.code} · ${veh.make}` : wo.vehicleId}
-                  </td>
-                  <td className="max-w-sm px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => onSelectWorkOrder(wo.id)}
-                      className="block truncate text-left font-medium text-slate-900 hover:text-blue-700"
-                    >
-                      {wo.summary}
-                    </button>
-                    <div className="text-[11px] text-slate-500">
-                      {wo.failureCategory} · {wo.laborItems.length} labor · {wo.partItems.length} repuestos
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className={workOrderStatusTextClass(wo.status)}>{wo.status}</div>
-                    <div className="font-mono text-[11px] text-slate-500">{wo.progress}% avance</div>
-                  </td>
-                  <td className={`px-4 py-3 whitespace-nowrap ${issuePriorityTextClass(wo.priority)}`}>
-                    {wo.priority}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-slate-600 whitespace-nowrap">
-                    {formatDate(wo.completedAt || wo.scheduledDate)}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono font-medium tabular-nums text-slate-900 whitespace-nowrap">
-                    {formatCurrency(total, state.settings.currency)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="flex flex-wrap items-end gap-3 border-b border-slate-200 p-3 sm:p-4">
+          <label className="relative min-w-0 flex-1 sm:max-w-72">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />
+            <input type="search" aria-label="Buscar orden" value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="OT o equipo"
+              className="min-h-11 w-full rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-sm" />
+          </label>
+          <label className="grid gap-1 text-xs font-medium text-slate-600">
+            Prioridad
+            <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value as 'Todas' | IssuePriority)}
+              className="min-h-11 rounded-lg border border-slate-200 bg-white px-2 text-sm text-slate-900">
+              {(['Todas', 'Crítica', 'Alta', 'Media', 'Baja'] as const).map((priority) => (
+                <option key={priority}>{priority}</option>
+              ))}
+            </select>
+          </label>
+          <p role="status" className="w-full text-xs text-slate-600 sm:ml-auto sm:w-auto sm:pb-2.5">
+            {filtered.length} de {state.workOrders.length} órdenes
+          </p>
+        </div>
+
+        <div className={previewedOrder ? 'grid xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]' : ''}>
+          <div className="min-w-0">
+            {filtered.length === 0 ? (
+              <p className="p-8 text-center text-sm text-slate-600">Sin órdenes que coincidan con los filtros.</p>
+            ) : (
+              <table className="w-full table-fixed text-left text-xs" aria-label="Órdenes de trabajo">
+                <thead>
+                  <tr className="border-b border-slate-200 text-slate-600">
+                    <th scope="col" className="w-20 px-2.5 py-3 sm:w-28 sm:px-4">OT</th>
+                    <th scope="col" className="w-24 px-2 py-3 sm:w-32">Equipo</th>
+                    <th scope="col" className="px-2 py-3">Falla o trabajo</th>
+                    <th scope="col" className="hidden w-[88px] px-2 py-3 lg:table-cell">Prioridad</th>
+                    <th scope="col" className="hidden w-28 px-2 py-3 lg:table-cell">Estado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {filtered.map((order) => {
+                    const vehicle = vehicleById.get(order.vehicleId);
+                    const isPreviewed = previewedOrder?.id === order.id;
+                    return (
+                      <tr key={order.id} className={isPreviewed ? 'bg-[#edf5ff]' : 'hover:bg-slate-50'}>
+                        <td className={`border-l-[3px] py-1 pl-2 pr-1 sm:pl-3 ${isPreviewed ? 'border-[#2867d8]' : 'border-transparent'}`}>
+                          <button type="button" aria-pressed={isPreviewed} aria-controls="vista-previa-ot"
+                            aria-label={`Ver ${order.code}`}
+                            onClick={() => {
+                              setPreviewId(order.id);
+                              if (window.matchMedia('(max-width: 1279px)').matches) {
+                                document.getElementById('vista-previa-ot')?.focus();
+                              }
+                            }}
+                            className="inline-flex min-h-11 max-w-full items-center text-left font-mono font-semibold text-[#214e96] hover:underline">
+                            {order.code}
+                          </button>
+                        </td>
+                        <td className="break-words px-2 py-2 font-semibold text-slate-900">
+                          {vehicle?.code ?? order.vehicleId}
+                        </td>
+                        <td className="px-2 py-2">
+                          <button type="button" onClick={() => onSelectWorkOrder(order.id)}
+                            title={order.summary}
+                            className="block max-w-full truncate text-left font-medium text-slate-900 hover:underline">
+                            {order.summary}
+                          </button>
+                          <span className={`mt-1 block text-[11px] lg:hidden ${workOrderStatusTextClass(order.status)}`}>{order.status}</span>
+                        </td>
+                        <td className="hidden px-2 py-2 lg:table-cell">
+                          <span className={`rounded-full bg-white px-2 py-1 ${issuePriorityTextClass(order.priority)}`}>{order.priority}</span>
+                        </td>
+                        <td className={`hidden px-2 py-2 lg:table-cell ${workOrderStatusTextClass(order.status)}`}>{order.status}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {previewedOrder && (
+            <aside id="vista-previa-ot" tabIndex={-1} aria-label="Vista previa de la orden"
+              className="min-w-0 scroll-mt-20 space-y-3 border-t border-slate-200 bg-[#f5f7fa] p-3 xl:border-l xl:border-t-0 xl:p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold text-slate-600">Orden de trabajo</p>
+                  <h2 className="mt-1 text-xl font-bold">{previewedOrder.code}</h2>
+                </div>
+                <span className={`rounded-full bg-white px-2.5 py-1 text-xs ${issuePriorityTextClass(previewedOrder.priority)}`}>{previewedOrder.priority}</span>
+              </div>
+              <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3">
+                <Truck className="size-5 shrink-0 text-slate-600" aria-hidden="true" />
+                <div className="min-w-0">
+                  <div className="break-words text-sm font-semibold">{previewVehicle?.code ?? previewedOrder.vehicleId}</div>
+                  {previewVehicle && <div className="text-xs text-slate-600">{previewVehicle.make} {previewVehicle.model}</div>}
+                </div>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-white p-3 text-xs">
+                <div className="font-semibold text-slate-600">Trabajo</div>
+                <p className="mt-1 break-words leading-relaxed">{previewedOrder.summary}</p>
+              </div>
+              <dl className="grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <dt className="font-semibold text-slate-600">Estado</dt>
+                  <dd className={`mt-1 ${workOrderStatusTextClass(previewedOrder.status)}`}>{previewedOrder.status} · {previewedOrder.progress}%</dd>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <dt className="font-semibold text-slate-600">{previewedOrder.completedAt ? 'Cierre' : 'Programada'}</dt>
+                  <dd className="mt-1 tabular-nums">{formatDate(previewedOrder.completedAt || previewedOrder.scheduledDate)}</dd>
+                </div>
+              </dl>
+              <p className="text-xs text-slate-600">
+                Costo total <strong className="tabular-nums text-slate-900">{formatCurrency(computeWorkOrderTotals(previewedOrder).total, state.settings.currency)}</strong>
+              </p>
+              <button type="button" onClick={() => onSelectWorkOrder(previewedOrder.id)}
+                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-blue-700 px-3 text-xs font-semibold text-white hover:bg-blue-800">
+                Consultar orden <ArrowRight className="size-4" aria-hidden="true" />
+              </button>
+            </aside>
+          )}
+        </div>
       </div>
 
       {/* Create Work Order Modal */}

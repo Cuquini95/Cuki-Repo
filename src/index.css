@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Public Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
@@ -10,7 +10,7 @@
   html {
     font-family: var(--font-sans);
     color: #0f172a;
-    background-color: #f8fafc;
+    background-color: #f2f6f9;
   }
 
   h1, h2, h3, h4 {
@@ -19,7 +19,7 @@
   }
 
   *:focus-visible {
-    outline: 2px solid #28858e;
+    outline: 2px solid #327ea6;
     outline-offset: 2px;
   }
 }
@@ -49,18 +49,18 @@
   --color-blue-700: #075d68;
   --color-blue-800: #084b54;
   --color-blue-900: #083b44;
-  --color-slate-50: #f2f6fa;
-  --color-slate-200: #dce5ee;
-  --color-slate-900: #122237;
+  --color-slate-50: #f2f6f9;
+  --color-slate-200: #e0e6eb;
+  --color-slate-900: #142537;
 }
 
 .vektor-sidebar {
-  background: linear-gradient(165deg, #122338, #0b182a);
+  background: linear-gradient(#0e1b33, #09182e);
 }
 
 .vektor-nav-active {
-  background: #1d485e;
-  box-shadow: inset 3px 0 #5fc4d1;
+  background: #1b4d73;
+  box-shadow: inset 3px 0 #54bbc5;
 }
 
 .vektor-drawer {
@@ -89,4 +89,35 @@
   .vektor-dashboard select {
     max-width: 100%;
   }
+}
+
+.vektor-workspace table > thead > tr {
+  background-color: #f5f7fa;
+}
+
+.vektor-workspace table > thead th {
+  color: #46566b;
+  font-weight: 650;
+}
+
+.vektor-workspace button:not(:disabled) {
+  cursor: pointer;
+}
+
+.vektor-workspace > :where(div, section) {
+  min-width: 0;
+}
+
+.vektor-workspace h1 {
+  font-size: clamp(1.625rem, 1.1rem + 1.15vw, 2.375rem);
+  line-height: 1.15;
+}
+
+.vektor-role-action {
+  background: #215acb;
+  color: #fff;
+}
+
+.vektor-role-action:hover {
+  background: #1b4fb6;
 }

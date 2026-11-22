@@ -262,24 +262,24 @@ export const Layout: React.FC<LayoutProps> = ({
 
   const renderSidebar = (mobile: boolean) => (
     <div className="vektor-sidebar flex h-full min-h-0 flex-col text-slate-200">
-      <div className="flex shrink-0 items-center justify-between gap-1 border-b border-white/10 px-4 py-4">
+      <div className="relative mx-3 flex shrink-0 justify-center border-b border-white/10 pb-5 pt-[18px]">
         <button
           type="button"
           onClick={() => {
             onNavigate({ section: 'dashboard' });
             drawer.current?.close();
           }}
-          className="text-left"
+          className="rounded-[9px]"
+          aria-label="Vektor Flota · Centro de mando"
         >
-          <img src="/transplus.webp" width="440" height="124" alt="TransPlus" className="h-auto w-36 rounded-md bg-white p-1.5" />
-          <span className="mt-2 block text-xs font-semibold tracking-wide text-slate-300">Vektor Flota</span>
+          <img src="/transplus-vertical.jpeg" width="638" height="426" alt="TransPlus" className="h-[128px] w-[190px] rounded-[9px] bg-white object-contain" />
         </button>
         {mobile && <button
           type="button"
           autoFocus
           onClick={() => drawer.current?.close()}
           aria-label="Cerrar navegación"
-          className="rounded-md p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white lg:hidden"
+          className="absolute right-0 top-2 grid size-10 place-items-center rounded-md text-slate-300 hover:bg-slate-800 hover:text-white lg:hidden"
         >
           <X className="h-4 w-4" />
         </button>}
@@ -305,7 +305,7 @@ export const Layout: React.FC<LayoutProps> = ({
                           drawer.current?.close();
                         }}
                         aria-current={active ? 'page' : undefined}
-                        className={`vektor-nav flex min-h-10 w-full items-center justify-between rounded-lg px-2.5 py-2 text-sm transition-colors whitespace-nowrap ${
+                        className={`vektor-nav flex min-h-[38px] w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors whitespace-nowrap ${
                           active
                             ? 'vektor-nav-active font-semibold text-white'
                             : 'text-slate-300 hover:bg-slate-800/60 hover:text-white'
@@ -366,7 +366,7 @@ export const Layout: React.FC<LayoutProps> = ({
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900">
       <a href="#contenido" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-[60] focus:rounded-md focus:bg-white focus:p-3">Ir al contenido</a>
-      <aside className="fixed inset-y-0 left-0 hidden w-60 lg:block">
+      <aside className="fixed inset-y-0 left-0 hidden w-[248px] lg:block">
         {renderSidebar(false)}
       </aside>
       <dialog
@@ -384,8 +384,8 @@ export const Layout: React.FC<LayoutProps> = ({
       </dialog>
 
       {/* Main Content Shell */}
-      <div className="flex min-w-0 flex-1 flex-col lg:pl-60">
-        <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-2 border-b border-slate-200 bg-white px-3 sm:px-6">
+      <div className="flex min-w-0 flex-1 flex-col lg:pl-[248px]">
+        <header className="sticky top-0 z-30 flex min-h-[70px] items-center justify-between gap-2 border-b border-slate-200 bg-white/95 px-3 backdrop-blur sm:px-7">
           <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
@@ -395,7 +395,9 @@ export const Layout: React.FC<LayoutProps> = ({
             >
               <Menu className="h-5 w-5" />
             </button>
-            <nav aria-label="Ruta actual" className="flex min-w-0 items-center gap-1.5 text-sm">
+            <div className="min-w-0">
+              <div className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-500">Vektor Flota · Operación</div>
+              <nav aria-label="Ruta actual" className="flex min-w-0 items-center gap-1.5 text-sm sm:text-base">
               {breadcrumbs.map((crumb, idx) => {
                 const isLast = idx === breadcrumbs.length - 1;
                 return (
@@ -405,7 +407,7 @@ export const Layout: React.FC<LayoutProps> = ({
                       <button
                         type="button"
                         onClick={crumb.onClick}
-                        className="hidden truncate text-slate-600 transition-colors hover:text-slate-900 xl:inline"
+                        className="hidden truncate text-xs text-slate-600 transition-colors hover:text-slate-900 xl:inline"
                       >
                         {crumb.label}
                       </button>
@@ -421,7 +423,8 @@ export const Layout: React.FC<LayoutProps> = ({
                   </React.Fragment>
                 );
               })}
-            </nav>
+              </nav>
+            </div>
           </div>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
@@ -460,7 +463,7 @@ export const Layout: React.FC<LayoutProps> = ({
                 onChange={(e) => setGlobalQuery(e.target.value)}
                 placeholder="Buscar equipo, OT o repuesto…"
                 aria-label="Búsqueda global"
-                className="h-10 w-full rounded-lg border md:w-56 xl:w-64 border-slate-200 bg-slate-50 pl-8 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:bg-white focus:outline-none"
+                className="h-10 w-full rounded-lg border md:w-56 xl:w-[310px] border-slate-200 bg-slate-50 pl-8 pr-3 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:bg-white focus:outline-none"
               />
               {searchFocused && globalQuery.trim().length > 0 && (
                 <div className="absolute inset-x-3 top-full z-40 max-h-[60vh] overflow-y-auto rounded-lg md:inset-x-auto md:right-0 md:w-80 border border-slate-200 bg-white shadow-lg">
@@ -498,16 +501,38 @@ export const Layout: React.FC<LayoutProps> = ({
           </div>
         </header>
 
-        <main id="contenido" className="mx-auto w-full min-w-0 max-w-[1600px] flex-1 px-3 py-5 sm:px-6 lg:px-8">
+        <main id="contenido" className="vektor-workspace w-full min-w-0 flex-1 px-3 pt-5 pb-24 sm:px-7 lg:py-7">
           {children}
         </main>
+        <nav aria-label="Accesos móviles" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+          {([
+            { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard },
+            { id: 'operations', label: 'Mi turno', icon: Clock },
+            { id: 'work-orders', label: 'Órdenes', icon: Wrench },
+            { id: 'vehicles', label: 'Equipos', icon: Truck },
+          ] satisfies NavItem[]).map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              aria-current={isActiveNav(id) ? 'page' : undefined}
+              onClick={() => {
+                setMobileSearch(false);
+                onNavigate({ section: id });
+              }}
+              className={`flex min-h-14 flex-col items-center justify-center gap-1 border-t-2 text-[11px] font-semibold ${isActiveNav(id) ? 'border-blue-600 bg-blue-50 text-blue-800' : 'border-transparent text-slate-600'}`}
+            >
+              <Icon className="size-4" aria-hidden="true" />
+              {label}
+            </button>
+          ))}
+        </nav>
       </div>
 
       {/* Toast Notifications */}
       {toasts.length > 0 && (
         <div
           aria-live="polite"
-          className="fixed bottom-4 right-4 z-50 flex w-full max-w-sm flex-col gap-2 px-4 sm:px-0"
+          className="fixed bottom-16 right-4 z-50 lg:bottom-4 flex w-full max-w-sm flex-col gap-2 px-4 sm:px-0"
         >
           {toasts.map((toast) => (
             <div
