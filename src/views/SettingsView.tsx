@@ -9,7 +9,6 @@ import {
   ShieldCheck,
   Upload,
 } from 'lucide-react';
-import { GoogleSheetsSyncCard } from '../components/GoogleSheetsSyncCard';
 import { ROLE_LABELS, useFleet } from '../store/FleetContext';
 import { UserRole } from '../types/fleet';
 
@@ -84,12 +83,10 @@ export const SettingsView: React.FC = () => {
           Configuración, Roles e Importación
         </h1>
         <p className="mt-0.5 text-sm text-slate-500">
-          Sincronización en vivo con Google Drive / Google Sheets, carga inmediata CSV/pegado, identidad de operación y matriz RBAC de 8 perfiles.
+          Importación local de CSV, identidad del proyecto y simulación de roles. Los cambios se guardan en este navegador.
         </p>
       </div>
 
-      {/* Live Google Drive & Google Sheets Sync */}
-      <GoogleSheetsSyncCard />
 
       {/* Operation Identity */}
       <section className="rounded-lg border border-slate-200 bg-white p-5">

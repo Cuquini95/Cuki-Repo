@@ -11,6 +11,7 @@ import {
 } from '../utils/format';
 
 interface IssuesViewProps {
+  initialQuery?: string;
   onNavigate: (next: RouteState) => void;
 }
 
@@ -22,11 +23,11 @@ const STATUS_FILTERS: ('Todas' | IssueStatus)[] = [
   'Cerrada',
 ];
 
-export const IssuesView: React.FC<IssuesViewProps> = ({ onNavigate }) => {
+export const IssuesView: React.FC<IssuesViewProps> = ({ onNavigate, initialQuery }) => {
   const { state, can, addIssue, resolveIssue, updateIssueStatus, createWorkOrder } = useFleet();
   const [statusFilter, setStatusFilter] = useState<'Todas' | IssueStatus>('Todas');
   const [priorityFilter, setPriorityFilter] = useState<'Todas' | IssuePriority>('Todas');
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery ?? '');
 
   const [createOpen, setCreateOpen] = useState(false);
   const [resolveTarget, setResolveTarget] = useState<Issue | null>(null);

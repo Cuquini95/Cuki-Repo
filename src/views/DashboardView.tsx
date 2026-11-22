@@ -3,17 +3,17 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
-import { Copy, SlidersHorizontal, ArrowUpRight } from 'lucide-react';
+import { AlertTriangle, ArrowUpRight, BarChart3, CalendarClock, Copy, Package, Plus, SlidersHorizontal, Truck } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { ROLE_LABELS, useFleet } from '../store/FleetContext';
 import { FleetGroup, RouteState, UserRole } from '../types/fleet';
 import {
-  computeMechanicalAvailability,
   computeRenewalStatus,
   computeServiceReminderStatus,
   computeWorkOrderTotals,
@@ -28,8 +28,11 @@ import {
 } from '../utils/format';
 
 interface DashboardViewProps {
+  onCreateWorkOrder: () => void;
   onNavigate: (next: RouteState) => void;
 }
+
+const PRIORITY_ORDER = ['Crítica', 'Alta', 'Media', 'Baja'];
 
 const GROUPS: ('Todos' | FleetGroup)[] = [
   'Todos',
@@ -82,9 +85,10 @@ const ROLE_QUICK_ACTIONS: Record<UserRole, { label: string; section: RouteState[
   ],
 };
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onCreateWorkOrder }) => {
   const {
     state,
+    can,
     toggleDashboardWidget,
     duplicateDashboardView,
     selectDashboardProfile,
@@ -131,7 +135,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
     () =>
       filteredWorkOrders.filter(
         (w) => w.status === 'Abierta' || w.status === 'En progreso' || w.status === 'Esperando repuestos'
-      ),
+      ).sort((a, b) => PRIORITY_ORDER.indexOf(a.priority) - PRIORITY_ORDER.indexOf(b.priority) ||
+        a.scheduledDate.localeCompare(b.scheduledDate)),
     [filteredWorkOrders]
   );
 
@@ -176,7 +181,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
 
     return [...service, ...renewals]
       .filter((item) => item.status === 'Vencido' || item.status === 'Próximo')
-      .sort((a, b) => (a.status === 'Vencido' ? -1 : b.status === 'Vencido' ? 1 : 0));
+      .sort((a, b) => Number(b.status === 'Vencido') - Number(a.status === 'Vencido'));
   }, [state.serviceReminders, state.renewalReminders, state.vehicles, state.contacts, vehicleIdSet, state.settings.distanceUnit]);
 
   const statusBreakdown = useMemo(() => {
@@ -193,59 +198,37 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
     return counts;
   }, [filteredVehicles]);
 
-  const totalFuelCost = useMemo(
-    () =>
-      state.fuelEntries
-        .filter((f) => vehicleIdSet.has(f.vehicleId))
-        .reduce((acc, f) => acc + f.totalCost, 0),
-    [state.fuelEntries, vehicleIdSet]
-  );
-
-  const totalMaintenanceCost = useMemo(
-    () =>
-      filteredWorkOrders
-        .filter((w) => w.status !== 'Cancelada')
-        .reduce((acc, w) => acc + computeWorkOrderTotals(w).total, 0),
-    [filteredWorkOrders]
-  );
-
-  const avgEfficiency = useMemo(() => {
-    const valid = state.fuelEntries.filter(
-      (f) => vehicleIdSet.has(f.vehicleId) && typeof f.kmPerLiter === 'number' && f.kmPerLiter > 0
-    );
-    if (valid.length === 0) return 0;
-    return valid.reduce((acc, f) => acc + (f.kmPerLiter || 0), 0) / valid.length;
-  }, [state.fuelEntries, vehicleIdSet]);
+  const totalMaintenanceCost = filteredWorkOrders
+    .filter((order) => order.status !== 'Cancelada')
+    .reduce((total, order) => total + computeWorkOrderTotals(order).total, 0);
 
   const costTrendData = useMemo(() => {
-    const months = [
-      { key: '2026-08', label: 'Ago', mantenimiento: 6200, combustible: 9850 },
-      { key: '2026-09', label: 'Sep', mantenimiento: 5400, combustible: 10420 },
-      { key: '2026-10', label: 'Oct', mantenimiento: 0, combustible: 0 },
-      { key: '2026-11', label: 'Nov', mantenimiento: 0, combustible: 0 },
-    ];
-    const scale = selectedGroup === 'Todos' ? 1 : Math.max(0.25, filteredVehicles.length / Math.max(1, state.vehicles.length));
-    months[0].mantenimiento = Math.round(months[0].mantenimiento * scale);
-    months[0].combustible = Math.round(months[0].combustible * scale);
-    months[1].mantenimiento = Math.round(months[1].mantenimiento * scale);
-    months[1].combustible = Math.round(months[1].combustible * scale);
+    const months = new Map<string, { mantenimiento: number; combustible: number }>();
+    function monthFor(date: string) {
+      const key = date.slice(0, 7);
+      let month = months.get(key);
+      if (!month) {
+        month = { mantenimiento: 0, combustible: 0 };
+        months.set(key, month);
+      }
+      return month;
+    }
 
-    filteredWorkOrders
-      .filter((w) => w.status !== 'Cancelada')
-      .forEach((wo) => {
-        const bucket = months.find((m) => wo.createdAt.startsWith(m.key));
-        if (bucket) bucket.mantenimiento += Math.round(computeWorkOrderTotals(wo).total);
-      });
+    for (const order of filteredWorkOrders) {
+      if (order.status !== 'Cancelada') {
+        monthFor(order.createdAt).mantenimiento += computeWorkOrderTotals(order).total;
+      }
+    }
+    for (const entry of state.fuelEntries) {
+      if (vehicleIdSet.has(entry.vehicleId)) monthFor(entry.date).combustible += entry.totalCost;
+    }
 
-    state.fuelEntries
-      .filter((f) => vehicleIdSet.has(f.vehicleId))
-      .forEach((f) => {
-        const bucket = months.find((m) => f.date.startsWith(m.key));
-        if (bucket) bucket.combustible += Math.round(f.totalCost);
-      });
-
-    return months;
-  }, [filteredWorkOrders, state.fuelEntries, vehicleIdSet, selectedGroup, filteredVehicles.length, state.vehicles.length]);
+    const monthLabel = new Intl.DateTimeFormat('es-PA', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+    return [...months.entries()].sort(([a], [b]) => a.localeCompare(b)).slice(-6).map(([key, totals]) => ({
+      label: monthLabel.format(new Date(`${key}-01T00:00:00Z`)),
+      ...totals,
+    }));
+  }, [filteredWorkOrders, state.fuelEntries, vehicleIdSet]);
 
   const lowStockParts = useMemo(
     () => state.parts.filter((p) => p.quantityOnHand <= p.reorderPoint),
@@ -260,20 +243,41 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
     [state.meterReadings, vehicleIdSet]
   );
 
+  const stoppedCount = new Set(state.downtimeEvents
+    .filter((event) => event.status === 'Activo' && vehicleIdSet.has(event.vehicleId))
+    .map((event) => event.vehicleId)).size;
+  const criticalWorkOrders = activeWorkOrders.filter((order) => order.priority === 'Crítica');
+  const overduePm = reminderItems.filter((item) => item.kind === 'Mantenimiento' && item.status === 'Vencido');
+  const upcomingPm = reminderItems.filter((item) => item.kind === 'Mantenimiento' && item.status === 'Próximo');
+  const indicators = [
+    { label: 'Equipos detenidos', value: stoppedCount, detail: `${filteredVehicles.length} equipos en la vista`, icon: Truck, iconClass: 'bg-red-50 text-red-700', section: 'operations' },
+    { label: 'OT críticas', value: criticalWorkOrders.length, detail: `${activeWorkOrders.length} órdenes activas`, icon: AlertTriangle, iconClass: 'bg-orange-50 text-orange-700', section: 'work-orders' },
+    { label: 'PM vencidos', value: overduePm.length, detail: `${upcomingPm.length} próximos`, icon: CalendarClock, iconClass: 'bg-amber-100 text-amber-800', section: 'reminders' },
+    { label: 'Stock bajo', value: lowStockParts.length, detail: 'Inventario general', icon: Package, iconClass: 'bg-blue-50 text-blue-700', section: 'parts' },
+  ] as const;
+
   return (
-    <div className="space-y-6">
-      {/* Toolbar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+    <div className="vektor-dashboard space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold text-blue-800">{state.settings.projectCode} · {state.settings.currency}</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
             {activeProfile.name}
           </h1>
-          <p className="mt-0.5 text-sm text-slate-500">
-            Supervisión consolidada de disponibilidad, mantenimiento preventivo, incidencias y costos operativos.
-          </p>
         </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => onNavigate({ section: 'reports' })} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+            <BarChart3 className="h-4 w-4" /> Reportes
+          </button>
+          {can('workorder:manage') && (
+            <button type="button" onClick={onCreateWorkOrder} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-blue-700 px-3 text-sm font-semibold text-white hover:bg-blue-800">
+              <Plus className="h-4 w-4" /> Nueva orden
+            </button>
+          )}
+        </div>
+      </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
           <select
             aria-label="Seleccionar vista de panel"
             value={activeProfile.id}
@@ -308,125 +312,122 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
             <SlidersHorizontal className="h-3.5 w-3.5" />
             Personalizar widgets
           </button>
-        </div>
       </div>
 
-      {/* Role-Aware Quick Access Bar */}
-      <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-xs text-slate-600">
-          <span className="font-mono font-semibold text-slate-900">
-            {ROLE_LABELS[state.settings.activeRole].positionCode}
-          </span>{' '}
-          · <span className="font-medium text-slate-900">{ROLE_LABELS[state.settings.activeRole].label}</span>{' '}
-          <span className="hidden md:inline text-slate-500">
-            — {ROLE_LABELS[state.settings.activeRole].summary}
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          {ROLE_QUICK_ACTIONS[state.settings.activeRole].map((act) => (
-            <button
-              key={act.label}
-              type="button"
-              onClick={() => onNavigate({ section: act.section })}
-              className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-800 transition-colors hover:border-blue-300 hover:bg-blue-50/60 hover:text-blue-800 whitespace-nowrap shrink-0"
-            >
-              {act.label}
+      {isVisible('kpi_strip') && (
+        <section aria-label="Indicadores principales" className="grid grid-cols-2 gap-2.5 bg-transparent !shadow-none xl:grid-cols-4">
+          {indicators.map(({ label, value, detail, icon: Icon, iconClass, section }) => (
+            <button key={label} type="button" onClick={() => onNavigate({ section })}
+              className="flex min-w-0 flex-col items-start gap-2 rounded-xl border border-slate-200 bg-white p-3 text-left transition-colors hover:border-blue-300 sm:flex-row sm:gap-3 sm:p-4">
+              <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${iconClass}`}>
+                <Icon className="h-4 w-4" aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold text-slate-600">{label}</span>
+                <strong className="my-0.5 block text-3xl leading-tight tabular-nums text-slate-900">{value}</strong>
+                <span className="block text-xs leading-snug text-slate-600">{detail}</span>
+              </span>
             </button>
           ))}
-        </div>
-      </div>
-
-      {/* KPI Strip */}
-      {isVisible('kpi_strip') && (
-        <section
-          aria-label="Indicadores principales"
-          className="grid grid-cols-1 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x"
-        >
-          <button
-            type="button"
-            onClick={() => onNavigate({ section: 'operations' })}
-            className="flex flex-col justify-between p-5 text-left transition-colors hover:bg-slate-50/70"
-          >
-            <span className="text-xs font-medium text-slate-500">Disponibilidad Mecánica</span>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-mono text-2xl font-semibold tabular-nums text-slate-900">
-                {computeMechanicalAvailability(null, state, 240).availabilityPct.toFixed(1)}%
-              </span>
-              <span className="text-xs text-emerald-700 font-medium">
-                {statusBreakdown.Activo}/{filteredVehicles.length} activos
-              </span>
-            </div>
-            <div className="mt-2 text-xs text-slate-500">
-              {statusBreakdown['En taller']} en taller · {statusBreakdown['Fuera de servicio']} fuera de servicio
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigate({ section: 'issues' })}
-            className="flex flex-col justify-between p-5 text-left transition-colors hover:bg-slate-50/70"
-          >
-            <span className="text-xs font-medium text-slate-500">Incidencias Abiertas</span>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-mono text-2xl font-semibold tabular-nums text-slate-900">
-                {filteredIssues.length}
-              </span>
-              <span className="text-xs font-medium text-red-700">
-                {filteredIssues.filter((i) => i.priority === 'Crítica').length} críticas
-              </span>
-            </div>
-            <div className="mt-2 text-xs text-slate-500">
-              {filteredIssues.filter((i) => i.status === 'En atención').length} vinculadas a orden de trabajo
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigate({ section: 'reminders' })}
-            className="flex flex-col justify-between p-5 text-left transition-colors hover:bg-slate-50/70"
-          >
-            <span className="text-xs font-medium text-slate-500">Recordatorios Pendientes</span>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-mono text-2xl font-semibold tabular-nums text-slate-900">
-                {reminderItems.filter((r) => r.status === 'Vencido').length}
-              </span>
-              <span className="text-xs font-medium text-red-700">Vencidos</span>
-            </div>
-            <div className="mt-2 text-xs text-slate-500">
-              {reminderItems.filter((r) => r.status === 'Próximo').length} próximos por km o fecha
-            </div>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onNavigate({ section: 'reports' })}
-            className="flex flex-col justify-between p-5 text-left transition-colors hover:bg-slate-50/70"
-          >
-            <span className="text-xs font-medium text-slate-500">Gasto Operativo Acumulado</span>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span className="font-mono text-2xl font-semibold tabular-nums text-slate-900">
-                {formatCurrency(totalFuelCost + totalMaintenanceCost, state.settings.currency)}
-              </span>
-            </div>
-            <div className="mt-2 text-xs text-slate-500 tabular-nums">
-              Rendimiento medio: {avgEfficiency > 0 ? `${avgEfficiency.toFixed(2)} km/L` : '—'}
-            </div>
-          </button>
         </section>
       )}
 
+      {isVisible('active_work_orders') && (
+        <div className="grid min-w-0 gap-4 xl:grid-cols-[1.45fr_1fr]">
+          <section className="rounded-xl border border-slate-200 bg-white">
+            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3.5">
+              <h2 className="text-sm font-semibold text-slate-900">Prioridades operativas</h2>
+              <button
+                type="button"
+                onClick={() => onNavigate({ section: 'work-orders' })}
+                className="text-xs font-medium text-blue-700 hover:text-blue-800"
+              >
+                Ver todas
+              </button>
+            </div>
+            {activeWorkOrders.length === 0 ? (
+              <div className="px-5 py-8 text-center text-xs text-slate-500">
+                Sin órdenes activas en taller.
+              </div>
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {activeWorkOrders.slice(0, 5).map((wo) => {
+                  const veh = state.vehicles.find((v) => v.id === wo.vehicleId);
+                  const totals = computeWorkOrderTotals(wo);
+                  return (
+                    <li key={wo.id} className="px-5 py-3 hover:bg-slate-50/70">
+                      <button
+                        type="button"
+                        onClick={() => onNavigate({ section: 'work-orders', selectedWorkOrderId: wo.id })}
+                        className="w-full text-left"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-mono text-xs font-semibold text-slate-900">
+                            {wo.code} · {veh?.code || wo.vehicleId}
+                          </span>
+                          <span className={`text-xs ${workOrderStatusTextClass(wo.status)}`}>
+                            {wo.status}
+                          </span>
+                        </div>
+                        <p className="mt-1 truncate text-xs font-medium text-slate-700">
+                          {wo.summary}
+                        </p>
+                        <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
+                          <span className={issuePriorityTextClass(wo.priority)}>{wo.priority}</span>
+                          <span className="font-mono tabular-nums text-slate-800">
+                            {formatCurrency(totals.total, state.settings.currency)}
+                          </span>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+          <section className="rounded-xl border border-slate-200 bg-white">
+            <div className="border-b border-slate-200 px-4 py-3">
+              <h2 className="text-sm font-bold">Panorama de mantenimiento</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4 xl:grid-cols-2 2xl:grid-cols-4">
+              {([
+                ['Abiertas', 'Abierta', 'bg-blue-50 text-blue-800'],
+                ['En curso', 'En progreso', 'bg-sky-50 text-sky-800'],
+                ['En espera', 'Esperando repuestos', 'bg-amber-50 text-amber-800'],
+                ['Completadas', 'Completada', 'bg-emerald-50 text-emerald-800'],
+              ] as const).map(([label, status, tone]) => (
+                <div key={status} className={`rounded-lg px-2.5 py-3 ${tone}`}>
+                  <strong className="block text-xl tabular-nums">{filteredWorkOrders.filter((order) => order.status === status).length}</strong>
+                  <span className="text-xs font-medium">{label}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3">
+        <span className="mr-1 text-xs font-semibold text-slate-600">{ROLE_LABELS[state.settings.activeRole].label}</span>
+        {ROLE_QUICK_ACTIONS[state.settings.activeRole].map((action) => (
+          <button key={action.label} type="button" onClick={() => onNavigate({ section: action.section })}
+            className="min-h-9 rounded-lg border border-slate-200 px-3 text-xs font-medium text-slate-800 hover:bg-slate-50">
+            {action.label}
+          </button>
+        ))}
+      </div>
+
       {/* Primary Row: Cost Chart + Fleet Status */}
       {(isVisible('cost_chart') || isVisible('fleet_status')) && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           {isVisible('cost_chart') && (
-            <section className="rounded-lg border border-slate-200 bg-white p-5 lg:col-span-2">
+            <section className="rounded-xl border border-slate-200 bg-white min-w-0 p-4 xl:col-span-2">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <h2 className="text-sm font-semibold text-slate-900">
-                    Tendencia de Costos Operativos
+                    Costos registrados
                   </h2>
                   <p className="mt-0.5 text-xs text-slate-500">
-                    Mantenimiento (OT) frente a combustible en {state.settings.currency}
+                    OT por mes de creación y combustible en {state.settings.currency}
                   </p>
                 </div>
                 <button
@@ -434,15 +435,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                   onClick={() => onNavigate({ section: 'reports' })}
                   className="inline-flex items-center gap-1 text-xs font-medium text-blue-700 hover:text-blue-800 whitespace-nowrap"
                 >
-                  Ver reporte TCO <ArrowUpRight className="h-3.5 w-3.5" />
+                  Ver reporte <ArrowUpRight className="h-3.5 w-3.5" />
                 </button>
               </div>
+              {costTrendData.length === 0 ? (
+                <p className="py-12 text-center text-sm text-slate-600">Sin costos registrados para este grupo.</p>
+              ) : (
               <div className="mt-4 h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={costTrendData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <BarChart data={costTrendData} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                     <XAxis dataKey="label" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
                     <YAxis
+                      width={42}
                       tick={{ fontSize: 11, fill: '#64748b' }}
                       axisLine={false}
                       tickLine={false}
@@ -458,16 +463,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
                         fontSize: '12px',
                       }}
                     />
-                    <Bar dataKey="combustible" name="Combustible" fill="#1d4ed8" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="mantenimiento" name="Mantenimiento" fill="#64748b" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="combustible" name="Combustible" fill="#086e79" radius={[3, 3, 0, 0]}>
+                      <LabelList dataKey="combustible" position="insideTop" fill="#fff" fontSize={11} formatter={(value) => Number(value) > 0 ? Math.round(Number(value)).toLocaleString('es-PA') : ''} />
+                    </Bar>
+                    <Bar dataKey="mantenimiento" name="Mantenimiento" fill="#536a84" radius={[3, 3, 0, 0]}>
+                      <LabelList dataKey="mantenimiento" position="insideTop" fill="#fff" fontSize={11} formatter={(value) => Number(value) > 0 ? Math.round(Number(value)).toLocaleString('es-PA') : ''} />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+              )}
             </section>
           )}
 
           {isVisible('fleet_status') && (
-            <section className="flex flex-col justify-between rounded-lg border border-slate-200 bg-white p-5">
+            <section className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5">
               <div>
                 <div className="flex items-center justify-between">
                   <h2 className="text-sm font-semibold text-slate-900">Estado de Vehículos</h2>
@@ -528,7 +538,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       {/* Operational Action Queues */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {isVisible('priority_issues') && (
-          <section className="rounded-lg border border-slate-200 bg-white">
+          <section className="rounded-xl border border-slate-200 bg-white">
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3.5">
               <h2 className="text-sm font-semibold text-slate-900">Incidencias Prioritarias</h2>
               <button
@@ -577,7 +587,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
         )}
 
         {isVisible('overdue_reminders') && (
-          <section className="rounded-lg border border-slate-200 bg-white">
+          <section className="rounded-xl border border-slate-200 bg-white">
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3.5">
               <h2 className="text-sm font-semibold text-slate-900">
                 Recordatorios Vencidos y Próximos
@@ -626,63 +636,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
       </div>
 
       {/* Secondary Row: Work Orders, Low Stock, Latest Meters */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {isVisible('active_work_orders') && (
-          <section className="rounded-lg border border-slate-200 bg-white">
-            <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3.5">
-              <h2 className="text-sm font-semibold text-slate-900">Órdenes de Trabajo Activas</h2>
-              <button
-                type="button"
-                onClick={() => onNavigate({ section: 'work-orders' })}
-                className="text-xs font-medium text-blue-700 hover:text-blue-800"
-              >
-                Ver todas
-              </button>
-            </div>
-            {activeWorkOrders.length === 0 ? (
-              <div className="px-5 py-8 text-center text-xs text-slate-500">
-                Sin órdenes activas en taller.
-              </div>
-            ) : (
-              <ul className="divide-y divide-slate-100">
-                {activeWorkOrders.map((wo) => {
-                  const veh = state.vehicles.find((v) => v.id === wo.vehicleId);
-                  const totals = computeWorkOrderTotals(wo);
-                  return (
-                    <li key={wo.id} className="px-5 py-3 hover:bg-slate-50/70">
-                      <button
-                        type="button"
-                        onClick={() => onNavigate({ section: 'work-orders', selectedWorkOrderId: wo.id })}
-                        className="w-full text-left"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-mono text-xs font-semibold text-slate-900">
-                            {wo.code}
-                          </span>
-                          <span className={`text-xs ${workOrderStatusTextClass(wo.status)}`}>
-                            {wo.status}
-                          </span>
-                        </div>
-                        <p className="mt-1 truncate text-xs font-medium text-slate-700">
-                          {wo.summary}
-                        </p>
-                        <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
-                          <span>{veh?.code || wo.vehicleId}</span>
-                          <span className="font-mono tabular-nums text-slate-800">
-                            {formatCurrency(totals.total, state.settings.currency)}
-                          </span>
-                        </div>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </section>
-        )}
-
-        {isVisible('low_stock_parts') && (
-          <section className="rounded-lg border border-slate-200 bg-white">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+          {isVisible('low_stock_parts') && (
+          <section className="rounded-xl border border-slate-200 bg-white">
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3.5">
               <h2 className="text-sm font-semibold text-slate-900">Alertas de Repuestos</h2>
               <button
@@ -721,7 +677,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate }) => {
         )}
 
         {isVisible('recent_meters') && (
-          <section className="rounded-lg border border-slate-200 bg-white">
+          <section className="rounded-xl border border-slate-200 bg-white">
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3.5">
               <h2 className="text-sm font-semibold text-slate-900">Últimas Lecturas (Horómetro / Odómetro)</h2>
               <button

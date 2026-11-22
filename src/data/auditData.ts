@@ -37,12 +37,12 @@ export interface ScreenDictionaryRow {
 export const AUDIT_PARAMETERS: AuditParameterRow[] = [
   {
     param: 'Referencia 1 (Fleetio)',
-    value: 'Fleetio Web App — https://secure.fleetio.com/3e4f944d01/dashboard (cuenta privada bloqueada por autenticación) + documentación oficial Help Center.',
+    value: 'Fleetio Web App — Fleetio (cuenta privada bloqueada por autenticación) + documentación oficial Help Center.',
     status: 'Bloqueado',
   },
   {
     param: 'Referencia 2 (Hermes Panamá)',
-    value: 'https://hermes-panama.vercel.app/panama/inicio — Inspeccionado en vivo (Grupo Trans Plus · Proyecto tmf-panama, es-PA, USD, 28 posiciones TP-PER-001..028, rutas de despacho, tiempo caído, llantas, sticker HSE, compras/OC/recepciones/CxP y OT con statusLog).',
+    value: 'Hermes Panamá · referencia de flujo operativo del prototipo.',
     status: 'Observado',
   },
   {
@@ -57,7 +57,7 @@ export const AUDIT_PARAMETERS: AuditParameterRow[] = [
   },
   {
     param: 'Acceso a datos reales',
-    value: 'API interna /hermes-api de Hermes Panamá exige sesión autenticada y no se hardcodean secretos; se habilitó importación directa CSV / pegado desde Google Sheets en Configuración para cargar la flota real al instante.',
+    value: 'Importación local CSV o pegado de filas de demostración en Configuración.',
     status: 'Observado',
   },
 ];
@@ -244,7 +244,7 @@ export const COVERAGE_MATRIX: CoverageMatrixRow[] = [
     id: 'ST-AUTH-FL',
     type: 'Estado',
     parent: 'ROOT',
-    entry: 'Sesión autenticada de Fleetio (3e4f944d01) y API privada /hermes-api de Hermes Panamá',
+    entry: 'Sesión autenticada de Fleetio y API privada /hermes-api de Hermes Panamá',
     referenceState: 'Bloqueado',
     ownProductState: 'Propuesto',
     testId: 'N/A',

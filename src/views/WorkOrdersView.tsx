@@ -15,6 +15,8 @@ import {
 } from '../utils/format';
 
 interface WorkOrdersViewProps {
+  openCreateSignal: number;
+  onConsumeCreateSignal: () => void;
   selectedWorkOrderId?: string;
   onSelectWorkOrder: (id?: string) => void;
   onNavigate: (next: RouteState) => void;
@@ -31,6 +33,8 @@ const STATUS_TABS: ('Todas' | WorkOrderStatusKey)[] = [
 
 export const WorkOrdersView: React.FC<WorkOrdersViewProps> = ({
   selectedWorkOrderId,
+  openCreateSignal,
+  onConsumeCreateSignal,
   onSelectWorkOrder,
   onNavigate,
 }) => {
@@ -46,6 +50,13 @@ export const WorkOrdersView: React.FC<WorkOrdersViewProps> = ({
 
   const [statusFilter, setStatusFilter] = useState<'Todas' | WorkOrderStatusKey>('Todas');
   const [createOpen, setCreateOpen] = useState(false);
+
+  useEffect(() => {
+    if (openCreateSignal) {
+      if (can('workorder:manage')) setCreateOpen(true);
+      onConsumeCreateSignal();
+    }
+  }, [can, openCreateSignal, onConsumeCreateSignal]);
 
   // Create WO Draft
   const [newVehicleId, setNewVehicleId] = useState(state.vehicles[0]?.id || '');

@@ -19,7 +19,7 @@
   }
 
   *:focus-visible {
-    outline: 2px solid #1d4ed8;
+    outline: 2px solid #28858e;
     outline-offset: 2px;
   }
 }
@@ -34,5 +34,58 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Shared palette for the command center and the operational modules. */
+@theme {
+  --color-blue-50: #e9f6f6;
+  --color-blue-100: #d4eeee;
+  --color-blue-200: #b3dddf;
+  --color-blue-300: #8bc5ca;
+  --color-blue-400: #55a4ac;
+  --color-blue-500: #28858e;
+  --color-blue-600: #086e79;
+  --color-blue-700: #075d68;
+  --color-blue-800: #084b54;
+  --color-blue-900: #083b44;
+  --color-slate-50: #f2f6fa;
+  --color-slate-200: #dce5ee;
+  --color-slate-900: #122237;
+}
+
+.vektor-sidebar {
+  background: linear-gradient(165deg, #122338, #0b182a);
+}
+
+.vektor-nav-active {
+  background: #1d485e;
+  box-shadow: inset 3px 0 #5fc4d1;
+}
+
+.vektor-drawer {
+  inset: 0 auto 0 0;
+  width: min(18rem, 88vw);
+  height: 100dvh;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+}
+
+.vektor-drawer::backdrop {
+  background: rgb(8 20 35 / 65%);
+}
+
+.vektor-dashboard section {
+  box-shadow: 0 2px 5px rgb(23 41 62 / 4%);
+}
+
+.vektor-dashboard :where(button, select) {
+  touch-action: manipulation;
+}
+
+@media (max-width: 639px) {
+  .vektor-dashboard select {
+    max-width: 100%;
   }
 }

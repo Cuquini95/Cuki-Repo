@@ -83,10 +83,10 @@ export const AuditDossierView: React.FC = () => {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900">
-            Expediente de Auditoría Funcional V2
+            Auditoría funcional del prototipo
           </h1>
           <p className="mt-0.5 text-sm text-slate-500">
-            Referencia objetivo: <span className="font-mono text-slate-700">https://secure.fleetio.com/3e4f944d01/dashboard</span> · Reconstrucción operativa con identidad visual propia en Vektor Flota.
+            Referencia histórica: <span className="font-mono text-slate-700">Fleetio</span> · Reconstrucción operativa con identidad visual propia en Vektor Flota.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -140,13 +140,13 @@ export const AuditDossierView: React.FC = () => {
           {/* Explicit Blocker Callout */}
           <section className="rounded-lg border border-amber-200 bg-amber-50/60 p-5 text-xs">
             <h2 className="text-sm font-semibold text-amber-900">
-              Bloqueo Registrado y Desbloqueo Exacto (Cuenta Privada 3e4f944d01)
+              Bloqueo Registrado y Desbloqueo Exacto (Cuenta Privada privada)
             </h2>
             <p className="mt-1.5 leading-relaxed text-amber-900/90">
-              La URL <span className="font-mono font-medium">https://secure.fleetio.com/3e4f944d01/dashboard</span> requiere sesión autenticada en Fleetio y el motor CLI <span className="font-mono">.cany</span> no está instalado en este entorno. Siguiendo el Prompt Maestro V2 (§1 y §6.5), se avanzó de forma autónoma con documentación oficial vigente del Help Center de Fleetio y se implementó la reconstrucción completa utilizable con identidad propia, dejando toda configuración específica de la cuenta <span className="font-mono">3e4f944d01</span> marcada como <strong>Bloqueado / Propuesto</strong> sin declarar paridad no comprobada.
+              La URL <span className="font-mono font-medium">Fleetio</span> requiere sesión autenticada en Fleetio y el motor CLI <span className="font-mono">.cany</span> no está instalado en este entorno. Siguiendo el Prompt Maestro V2 (§1 y §6.5), se avanzó de forma autónoma con documentación oficial vigente del Help Center de Fleetio y se implementó la reconstrucción completa utilizable con identidad propia, dejando toda configuración específica de la cuenta <span className="font-mono">privada</span> marcada como <strong>Bloqueado / Propuesto</strong> sin declarar paridad no comprobada.
             </p>
             <p className="mt-2 font-medium text-amber-950">
-              Para desbloquear la auditoría en vivo de la cuenta 3e4f944d01: comparte capturas o exportaciones CSV/JSON de tus vistas, roles y campos personalizados, o indica qué módulos específicos de tu plan deseas ajustar.
+              Para desbloquear la auditoría en vivo de la cuenta privada: comparte capturas o exportaciones CSV/JSON de tus vistas, roles y campos personalizados, o indica qué módulos específicos de tu plan deseas ajustar.
             </p>
           </section>
 

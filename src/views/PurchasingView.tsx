@@ -13,6 +13,7 @@ import {
 } from '../utils/format';
 
 interface PurchasingViewProps {
+  initialQuery?: string;
   onNavigate: (next: RouteState) => void;
 }
 
@@ -25,7 +26,7 @@ const PIPELINE_TABS: ('Todas' | PurchaseOrderStatus)[] = [
   'Pagada',
 ];
 
-export const PurchasingView: React.FC<PurchasingViewProps> = ({ onNavigate }) => {
+export const PurchasingView: React.FC<PurchasingViewProps> = ({ onNavigate, initialQuery }) => {
   const {
     state,
     can,
@@ -37,6 +38,8 @@ export const PurchasingView: React.FC<PurchasingViewProps> = ({ onNavigate }) =>
   } = useFleet();
 
   const [statusFilter, setStatusFilter] = useState<'Todas' | PurchaseOrderStatus>('Todas');
+
+  const [query, setQuery] = useState(initialQuery ?? '');
 
   // Create PO modal
   const [createOpen, setCreateOpen] = useState(false);
@@ -70,10 +73,12 @@ export const PurchasingView: React.FC<PurchasingViewProps> = ({ onNavigate }) =>
 
   const filtered = useMemo(
     () =>
-      state.purchaseOrders.filter((po) =>
-        statusFilter === 'Todas' ? true : po.status === statusFilter
-      ),
-    [state.purchaseOrders, statusFilter]
+      state.purchaseOrders.filter((po) => {
+        const term = query.trim().toLowerCase();
+        return (statusFilter === 'Todas' || po.status === statusFilter) &&
+          (po.code.toLowerCase().includes(term) || (po.invoiceNumber ?? '').toLowerCase().includes(term));
+      }),
+    [state.purchaseOrders, statusFilter, query]
   );
 
   const metrics = useMemo(() => {
@@ -253,6 +258,15 @@ export const PurchasingView: React.FC<PurchasingViewProps> = ({ onNavigate }) =>
           );
         })}
       </div>
+
+      <input
+        type="search"
+        aria-label="Buscar orden de compra"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="Buscar OC o factura…"
+        className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm sm:max-w-72"
+      />
 
       {/* Purchase Orders Table */}
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">

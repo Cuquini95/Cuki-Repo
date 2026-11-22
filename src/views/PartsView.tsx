@@ -5,10 +5,10 @@ import { useFleet } from '../store/FleetContext';
 import { Part } from '../types/fleet';
 import { formatCurrency, formatDate } from '../utils/format';
 
-export const PartsView: React.FC = () => {
+export const PartsView: React.FC<{ initialQuery?: string }> = ({ initialQuery }) => {
   const { state, can, addPart, adjustPartStock } = useFleet();
   const [subTab, setSubTab] = useState<'catalog' | 'movements'>('catalog');
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery ?? '');
   const [onlyLowStock, setOnlyLowStock] = useState(false);
 
   const [createOpen, setCreateOpen] = useState(false);

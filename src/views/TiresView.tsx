@@ -13,6 +13,7 @@ import {
 } from '../utils/format';
 
 interface TiresViewProps {
+  initialQuery?: string;
   onNavigate: (next: RouteState) => void;
 }
 
@@ -24,10 +25,10 @@ const STATUS_FILTERS: ('Todas' | TireStatus)[] = [
   'Desecho',
 ];
 
-export const TiresView: React.FC<TiresViewProps> = ({ onNavigate }) => {
+export const TiresView: React.FC<TiresViewProps> = ({ onNavigate, initialQuery }) => {
   const { state, can, addTire, inspectTire, addIssue } = useFleet();
   const [statusFilter, setStatusFilter] = useState<'Todas' | TireStatus>('Todas');
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery ?? '');
 
   // Create Tire modal
   const [createOpen, setCreateOpen] = useState(false);
