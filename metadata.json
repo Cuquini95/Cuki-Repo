@@ -1,0 +1,6 @@
+{
+  "name": "Vektor Flota",
+  "description": "Plataforma integral de gestión operativa de flotas, mantenimiento preventivo, inspecciones DVIR, órdenes de trabajo, combustible, inventario de repuestos y expediente de auditoría funcional.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
