@@ -164,22 +164,23 @@ export const IssuesView: React.FC<IssuesViewProps> = ({ onNavigate, initialQuery
           })}
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="relative">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="relative w-full sm:w-auto">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar folio, título o unidad..."
-              className="h-9 w-56 rounded-md border border-slate-200 bg-white pl-8 pr-3 text-xs focus:border-blue-600 focus:outline-none"
+              placeholder="Folio, falla o equipo"
+              aria-label="Buscar falla"
+              className="min-h-10 w-full rounded-lg border border-slate-200 bg-white pl-8 pr-3 text-xs sm:w-56 focus:border-blue-600 focus:outline-none"
             />
           </div>
           <select
             aria-label="Filtrar por prioridad"
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value as 'Todas' | IssuePriority)}
-            className="h-9 rounded-md border border-slate-200 bg-white px-3 text-xs text-slate-700"
+            className="min-h-10 w-full max-w-full rounded-lg border border-slate-200 bg-white px-3 text-xs text-slate-700 sm:w-auto"
           >
             <option value="Todas">Todas las prioridades</option>
             <option value="Crítica">Crítica</option>

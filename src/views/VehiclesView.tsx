@@ -376,7 +376,7 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
           </div>
         ) : (
           <TableViewport label="Flota y equipos">
-            <table className="vektor-data-table vektor-mobile-cards" style={{ minWidth: 1054 }} aria-label="Flota y equipos" role="table">
+            <table className="vektor-data-table vektor-mobile-cards vektor-equipment-table" style={{ minWidth: 1054 }} aria-label="Flota y equipos" role="table">
               <colgroup>
                 <col style={{ width: 44 }} />
                 <col />
@@ -461,11 +461,10 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
                           }
                           className="text-left"
                         >
-                          <div className="font-semibold text-slate-900 hover:text-blue-700">
-                            {veh.code} · {veh.name}
-                          </div>
-                          <div className="mt-0.5 text-[11px] text-slate-500">
-                            {veh.year} {veh.make} {veh.model} ·{' '}
+                          <span className="block font-mono font-bold text-[#214e96]">{veh.code}</span>
+                          <span className="block font-semibold text-slate-900">{veh.name}</span>
+                          <div className="mt-0.5 text-[11px] text-slate-600">
+                            {veh.year} ·{' '}
                             <span className="font-mono text-slate-700">{veh.licensePlate}</span>
                             {operator ? ` · ${operator.name}` : ''}
                           </div>
@@ -474,7 +473,7 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
                       <td role="cell" data-label="Estado" className="px-4 py-3 whitespace-nowrap">
                         <span className={`vektor-status ${vehicleStatusTextClass(veh.status)}`}>{veh.status}</span>
                       </td>
-                      <td role="cell" data-label="Frente y tipo" data-card-wide className="px-4 py-3">
+                      <td role="cell" data-label="Frente y tipo" className="px-4 py-3">
                         <div className="text-slate-800">{veh.group}</div>
                         <div className="text-[11px] text-slate-500">{veh.type}</div>
                       </td>

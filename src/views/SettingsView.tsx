@@ -136,7 +136,7 @@ export const SettingsView: React.FC = () => {
               Copia y pega filas directamente desde tu hoja <span className="font-mono">FLOTA</span> en Google Sheets o sube un archivo <span className="font-mono">.csv</span> / <span className="font-mono">.tsv</span>. Si el código ya existe, actualiza horómetro, odómetro y estado automáticamente.
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
             <button
               type="button"
               onClick={() => {
@@ -371,7 +371,7 @@ export const SettingsView: React.FC = () => {
             Los cambios quedan en este navegador. Puedes exportarlos o restaurar los datos de ejemplo.
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
           <button
             type="button"
             onClick={handleExportJson}
