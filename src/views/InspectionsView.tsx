@@ -136,6 +136,14 @@ export const InspectionsView: React.FC<InspectionsViewProps> = ({ onNavigate }) 
   };
 
   const selectedSubmission = state.inspections.find((s) => s.id === selectedSubmissionId);
+  const inspectionSubtitle = selectedSubmission
+    ? [
+        selectedSubmission.formName,
+        formatDate(selectedSubmission.submittedAt),
+        selectedSubmission.horometerHrs ? formatHours(selectedSubmission.horometerHrs) : null,
+        selectedSubmission.odometerKm ? formatDistance(selectedSubmission.odometerKm, state.settings.distanceUnit) : null,
+      ].filter(Boolean).join(' · ')
+    : undefined;
 
   return (
     <div className="space-y-5">
@@ -487,12 +495,8 @@ export const InspectionsView: React.FC<InspectionsViewProps> = ({ onNavigate }) 
       <Modal
         open={Boolean(selectedSubmission)}
         onClose={() => setSelectedSubmissionId(null)}
-        title={selectedSubmission ? `Detalle de Inspección · ${selectedSubmission.code}` : ''}
-        subtitle={
-          selectedSubmission
-            ? `${selectedSubmission.formName} · ${formatDate(selectedSubmission.submittedAt)} · ${formatDistance(selectedSubmission.odometerKm, state.settings.distanceUnit)}`
-            : undefined
-        }
+        title={selectedSubmission ? `Inspección ${selectedSubmission.code}` : ''}
+        subtitle={inspectionSubtitle}
         footer={
           <button
             type="button"
