@@ -131,7 +131,7 @@ export const Layout: React.FC<LayoutProps> = ({
       items: [
         { id: 'vehicles', label: 'Equipos', icon: Truck, count: state.vehicles.length },
         { id: 'tires', label: 'Llantas', icon: CircleDot, count: wornTiresCount },
-        { id: 'reminders', label: 'Mantenimiento PM', icon: Bell, count: overdueRemindersCount },
+        { id: 'reminders', label: 'PM y HSE', icon: Bell, count: overdueRemindersCount },
         { id: 'fuel', label: 'Combustible', icon: Fuel },
       ],
     },
