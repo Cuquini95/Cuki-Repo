@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Upload,
 } from 'lucide-react';
+import { TableViewport } from '../components/TableViewport';
 import { ROLE_LABELS, useFleet } from '../store/FleetContext';
 import { UserRole } from '../types/fleet';
 
@@ -80,10 +81,10 @@ export const SettingsView: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-bold tracking-tight text-slate-900">
-          Configuración, Roles e Importación
+          Configuración
         </h1>
         <p className="mt-0.5 text-sm text-slate-500">
-          Importación local de CSV, identidad del proyecto y simulación de roles. Los cambios se guardan en este navegador.
+          Proyecto, importación de equipos y roles de demostración.
         </p>
       </div>
 
@@ -128,7 +129,7 @@ export const SettingsView: React.FC = () => {
             <div className="flex items-center gap-2">
               <FileSpreadsheet className="h-4 w-4 text-blue-700" />
               <h2 className="text-sm font-semibold text-slate-900">
-                Importar Datos Reales (CSV / Pegar desde Google Sheets `FLOTA`)
+                Importar equipos
               </h2>
             </div>
             <p className="mt-1 text-xs text-slate-500">
@@ -317,49 +318,57 @@ export const SettingsView: React.FC = () => {
             Un estado marcado como &ldquo;Finaliza OT&rdquo; bloquea la edición posterior hasta que un usuario autorizado la reabra.
           </p>
         </div>
-        <table className="w-full text-left text-xs">
-          <thead>
-            <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500">
-              <th className="px-5 py-2.5 font-medium">Estado</th>
-              <th className="px-5 py-2.5 font-medium">Descripción</th>
-              <th className="px-5 py-2.5 font-medium">Por defecto</th>
-              <th className="px-5 py-2.5 text-right font-medium">Finaliza / Bloquea OT</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {state.settings.workOrderStatuses.map((st) => (
-              <tr key={st.key}>
-                <td className="px-5 py-3 font-semibold text-slate-900">{st.key}</td>
-                <td className="px-5 py-3 text-slate-600">{st.description}</td>
-                <td className="px-5 py-3 text-slate-700">{st.isDefault ? 'Sí' : '—'}</td>
-                <td className="px-5 py-3 text-right">
-                  <button
-                    type="button"
-                    disabled={!can('settings:manage')}
-                    onClick={() => toggleStatusLock(st.key)}
-                    className={`rounded px-2.5 py-1 text-xs font-medium ${
-                      st.marksCompleted
-                        ? 'bg-emerald-700 text-white'
-                        : 'border border-slate-300 bg-white text-slate-600'
-                    } disabled:opacity-40`}
-                  >
-                    {st.marksCompleted ? 'Sí (Bloquea)' : 'No'}
-                  </button>
-                </td>
+        <TableViewport label="Estados de órdenes de trabajo">
+          <table className="vektor-data-table" style={{ minWidth: 630 }} aria-label="Estados de órdenes de trabajo">
+            <colgroup>
+              <col style={{ width: 125 }} />
+              <col />
+              <col style={{ width: 95 }} />
+              <col style={{ width: 130 }} />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500">
+                <th scope="col" className="px-5 py-2.5 font-medium">Estado</th>
+                <th scope="col" className="px-5 py-2.5 font-medium">Descripción</th>
+                <th scope="col" className="px-5 py-2.5 font-medium">Por defecto</th>
+                <th scope="col" className="px-5 py-2.5 text-right font-medium">Cierra y bloquea la OT</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {state.settings.workOrderStatuses.map((st) => (
+                <tr key={st.key}>
+                  <td className="px-5 py-3 font-semibold text-slate-900">{st.key}</td>
+                  <td className="px-5 py-3 text-slate-600">{st.description}</td>
+                  <td className="px-5 py-3 text-slate-700">{st.isDefault ? 'Sí' : '—'}</td>
+                  <td className="px-5 py-3 text-right">
+                    <button
+                      type="button"
+                      disabled={!can('settings:manage')}
+                      onClick={() => toggleStatusLock(st.key)}
+                      className={`rounded px-2.5 py-1 text-xs font-medium ${
+                        st.marksCompleted
+                          ? 'bg-emerald-700 text-white'
+                          : 'border border-slate-300 bg-white text-slate-600'
+                      } disabled:opacity-40`}
+                    >
+                      {st.marksCompleted ? 'Sí (Bloquea)' : 'No'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableViewport>
       </section>
 
       {/* Data & Fixtures Management */}
       <section className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-sm font-semibold text-slate-900">
-            Persistencia Local y Respaldo Operativo
+            Datos de demostración
           </h2>
           <p className="mt-0.5 text-xs text-slate-500">
-            Todos los cambios se guardan automáticamente en el navegador (localStorage). Puedes exportar un respaldo JSON completo o restaurar la flota base TMF Panamá.
+            Los cambios quedan en este navegador. Puedes exportarlos o restaurar los datos de ejemplo.
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -377,7 +386,7 @@ export const SettingsView: React.FC = () => {
             className="inline-flex h-9 items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-3.5 text-xs font-medium text-red-700 hover:bg-red-100 whitespace-nowrap"
           >
             <RotateCcw className="h-3.5 w-3.5" />
-            Restablecer Fixtures
+            Restaurar datos de ejemplo
           </button>
         </div>
       </section>

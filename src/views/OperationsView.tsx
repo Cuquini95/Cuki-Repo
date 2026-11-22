@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Check, Clock, Download, Plus, ShieldCheck } from 'lucide-react';
+import { TableViewport } from '../components/TableViewport';
 import { Modal } from '../components/Modal';
 import { useFleet } from '../store/FleetContext';
 import { FailureCategory, RouteState } from '../types/fleet';
@@ -227,10 +228,10 @@ export const OperationsView: React.FC<OperationsViewProps> = ({ onNavigate }) =>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900">
-            Turnos, Tiempo Caído y Habilitación HSE
+            Producción y despacho
           </h1>
           <p className="mt-0.5 text-sm text-slate-500">
-            Control diario de producción y acarreo en {state.settings.projectCode}, paradas mecánicas y vigencia de stickers HSE.
+            Partes de turno, equipos detenidos y vigencia HSE.
           </p>
         </div>
 
@@ -327,6 +328,7 @@ export const OperationsView: React.FC<OperationsViewProps> = ({ onNavigate }) =>
               key={id}
               type="button"
               onClick={() => setSubTab(id)}
+              aria-pressed={subTab === id}
               className={`border-b-2 py-2.5 text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${
                 subTab === id
                   ? 'border-blue-700 text-blue-700'
@@ -341,283 +343,315 @@ export const OperationsView: React.FC<OperationsViewProps> = ({ onNavigate }) =>
 
       {/* Tab 1: Partes de Turno */}
       {subTab === 'turnos' && (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full border-collapse text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                <th className="px-4 py-2.5 font-medium">Folio / Fecha</th>
-                <th className="px-4 py-2.5 font-medium">Equipo y Operador</th>
-                <th className="px-4 py-2.5 font-medium">Frente / Material</th>
-                <th className="px-4 py-2.5 text-right font-medium">Viajes / m³</th>
-                <th className="px-4 py-2.5 text-right font-medium">Horómetro</th>
-                <th className="px-4 py-2.5 font-medium">Estado</th>
-                <th className="px-4 py-2.5 text-right font-medium">Validación</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {state.shiftDispatches.map((sd) => {
-                const veh = state.vehicles.find((v) => v.id === sd.vehicleId);
-                const op = state.contacts.find((c) => c.id === sd.operatorId);
-                const hrsWorked = Math.max(0, Number((sd.endHorometer - sd.startHorometer).toFixed(1)));
-                return (
-                  <tr key={sd.id} className="hover:bg-slate-50/70">
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="font-mono font-semibold text-slate-900">{sd.code}</div>
-                      <div className="text-[11px] text-slate-500">
-                        {formatDate(sd.date)} · {sd.shift.startsWith('Turno Día') ? 'Día' : 'Noche'}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          veh &&
-                          onNavigate({
-                            section: 'vehicle-detail',
-                            selectedVehicleId: veh.id,
-                            selectedVehicleTab: 'resumen',
-                          })
-                        }
-                        className="font-semibold text-slate-900 hover:text-blue-700"
-                      >
-                        {veh ? `${veh.code} · ${veh.make} ${veh.model}` : sd.vehicleId}
-                      </button>
-                      <div className="text-[11px] text-slate-500">{op?.name || 'Sin operador'}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-slate-800">{sd.frontName}</div>
-                      <div className="text-[11px] text-slate-500">{sd.material}</div>
-                      {sd.supervisorNote && (
-                        <div className="mt-0.5 text-[11px] text-amber-700">Obs: {sd.supervisorNote}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
-                      <div className="font-semibold text-slate-900">{sd.volumeM3} m³</div>
-                      <div className="text-[11px] text-slate-500">{sd.tripsCount} viajes</div>
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
-                      <div className="text-slate-800">
-                        {sd.startHorometer} → {sd.endHorometer} h
-                      </div>
-                      <div className="text-[11px] text-slate-500">+{hrsWorked} h trabajadas</div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={shiftStatusTextClass(sd.status)}>{sd.status}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      {sd.status === 'Por revisar' || sd.status === 'En curso' ? (
-                        <div className="inline-flex items-center gap-2">
-                          <button
-                            type="button"
-                            disabled={!can('operations:approve_shift')}
-                            onClick={() => updateShiftStatus(sd.id, 'Aceptado')}
-                            className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50/50 px-2 py-1 text-[11px] font-medium text-emerald-800 hover:bg-emerald-100/70 disabled:cursor-not-allowed disabled:opacity-40 whitespace-nowrap"
-                          >
-                            <Check className="h-3 w-3" />
-                            Aceptar
-                          </button>
-                          <button
-                            type="button"
-                            disabled={!can('operations:approve_shift')}
-                            onClick={() => {
-                              setObservingShiftId(sd.id);
-                              setObserveNote(sd.supervisorNote || '');
-                            }}
-                            className="rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 whitespace-nowrap"
-                          >
-                            Observar
-                          </button>
+        <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <TableViewport label="Partes de turno">
+            <table className="vektor-data-table" style={{ minWidth: 880 }} aria-label="Partes de turno">
+              <colgroup>
+                <col style={{ width: 105 }} />
+                <col />
+                <col style={{ width: 175 }} />
+                <col style={{ width: 95 }} />
+                <col style={{ width: 95 }} />
+                <col style={{ width: 105 }} />
+                <col style={{ width: 110 }} />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                  <th scope="col" className="px-4 py-2.5 font-medium">Parte y fecha</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Equipo y operador</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Frente y material</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Viajes / m³</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Horómetro</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Estado</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Validación</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {state.shiftDispatches.map((sd) => {
+                  const veh = state.vehicles.find((v) => v.id === sd.vehicleId);
+                  const op = state.contacts.find((c) => c.id === sd.operatorId);
+                  const hrsWorked = Math.max(0, Number((sd.endHorometer - sd.startHorometer).toFixed(1)));
+                  return (
+                    <tr key={sd.id} className="hover:bg-slate-50/70">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="font-mono font-semibold text-slate-900">{sd.code}</div>
+                        <div className="text-[11px] text-slate-500">
+                          {formatDate(sd.date)} · {sd.shift.startsWith('Turno Día') ? 'Día' : 'Noche'}
                         </div>
-                      ) : (
-                        <span className="text-[11px] text-slate-400">Revisado</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            veh &&
+                            onNavigate({
+                              section: 'vehicle-detail',
+                              selectedVehicleId: veh.id,
+                              selectedVehicleTab: 'resumen',
+                            })
+                          }
+                          className="font-semibold text-slate-900 hover:text-blue-700"
+                        >
+                          {veh ? `${veh.code} · ${veh.make} ${veh.model}` : sd.vehicleId}
+                        </button>
+                        <div className="text-[11px] text-slate-500">{op?.name || 'Sin operador'}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-slate-800">{sd.frontName}</div>
+                        <div className="text-[11px] text-slate-500">{sd.material}</div>
+                        {sd.supervisorNote && (
+                          <div className="mt-0.5 text-[11px] text-amber-700">Obs: {sd.supervisorNote}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
+                        <div className="font-semibold text-slate-900">{sd.volumeM3} m³</div>
+                        <div className="text-[11px] text-slate-500">{sd.tripsCount} viajes</div>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
+                        <div className="text-slate-800">
+                          {sd.startHorometer} → {sd.endHorometer} h
+                        </div>
+                        <div className="text-[11px] text-slate-500">+{hrsWorked} h trabajadas</div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={shiftStatusTextClass(sd.status)}>{sd.status}</span>
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        {sd.status === 'Por revisar' || sd.status === 'En curso' ? (
+                          <div className="inline-flex items-center gap-2">
+                            <button
+                              type="button"
+                              disabled={!can('operations:approve_shift')}
+                              onClick={() => updateShiftStatus(sd.id, 'Aceptado')}
+                              className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50/50 px-2 py-1 text-[11px] font-medium text-emerald-800 hover:bg-emerald-100/70 disabled:cursor-not-allowed disabled:opacity-40 whitespace-nowrap"
+                            >
+                              <Check className="h-3 w-3" />
+                              Aceptar
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!can('operations:approve_shift')}
+                              onClick={() => {
+                                setObservingShiftId(sd.id);
+                                setObserveNote(sd.supervisorNote || '');
+                              }}
+                              className="rounded border border-slate-200 bg-white px-2 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 whitespace-nowrap"
+                            >
+                              Observar
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-slate-400">Revisado</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </TableViewport>
         </div>
       )}
 
       {/* Tab 2: Tiempo Caído */}
       {subTab === 'downtime' && (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full border-collapse text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                <th className="px-4 py-2.5 font-medium">Folio</th>
-                <th className="px-4 py-2.5 font-medium">Equipo</th>
-                <th className="px-4 py-2.5 font-medium">Categoría y Motivo</th>
-                <th className="px-4 py-2.5 font-medium">Inicio / Cierre</th>
-                <th className="px-4 py-2.5 text-right font-medium">Horas Caídas</th>
-                <th className="px-4 py-2.5 font-medium">Estado</th>
-                <th className="px-4 py-2.5 text-right font-medium">Acción</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {state.downtimeEvents.map((dt) => {
-                const veh = state.vehicles.find((v) => v.id === dt.vehicleId);
-                const linkedWo = state.workOrders.find((w) => w.id === dt.workOrderId);
-                return (
-                  <tr key={dt.id} className="hover:bg-slate-50/70">
-                    <td className="px-4 py-3 font-mono font-semibold text-slate-900 whitespace-nowrap">
-                      {dt.code}
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          veh &&
-                          onNavigate({
-                            section: 'vehicle-detail',
-                            selectedVehicleId: veh.id,
-                            selectedVehicleTab: 'resumen',
-                          })
-                        }
-                        className="font-semibold text-slate-900 hover:text-blue-700"
-                      >
-                        {veh ? `${veh.code} · ${veh.name}` : dt.vehicleId}
-                      </button>
-                      {linkedWo && (
-                        <div className="mt-0.5 text-[11px] text-blue-700">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              onNavigate({ section: 'work-orders', selectedWorkOrderId: linkedWo.id })
-                            }
-                            className="hover:underline"
-                          >
-                            Vinculada a {linkedWo.code}
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-slate-800">{dt.category}</div>
-                      <div className="text-[11px] text-slate-600">{dt.reason}</div>
-                      {dt.impactNote && (
-                        <div className="mt-0.5 text-[11px] text-slate-400">{dt.impactNote}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-[11px] text-slate-600 whitespace-nowrap">
-                      <div>Inicio: {formatDate(dt.startedAt)}</div>
-                      <div>{dt.endedAt ? `Fin: ${formatDate(dt.endedAt)}` : 'En parada'}</div>
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono font-semibold tabular-nums text-slate-900 whitespace-nowrap">
-                      {formatHours(dt.hoursDown)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span
-                        className={
-                          dt.status === 'Activo'
-                            ? 'font-semibold text-red-700'
-                            : 'font-medium text-emerald-700'
-                        }
-                      >
-                        {dt.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      {dt.status === 'Activo' ? (
+        <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <TableViewport label="Tiempo detenido">
+            <table className="vektor-data-table" style={{ minWidth: 935 }} aria-label="Tiempo detenido">
+              <colgroup>
+                <col style={{ width: 90 }} />
+                <col style={{ width: 175 }} />
+                <col />
+                <col style={{ width: 150 }} />
+                <col style={{ width: 105 }} />
+                <col style={{ width: 95 }} />
+                <col style={{ width: 110 }} />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                  <th scope="col" className="px-4 py-2.5 font-medium">Folio</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Equipo</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Motivo de parada</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Inicio y cierre</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Horas detenido</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Estado</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {state.downtimeEvents.map((dt) => {
+                  const veh = state.vehicles.find((v) => v.id === dt.vehicleId);
+                  const linkedWo = state.workOrders.find((w) => w.id === dt.workOrderId);
+                  return (
+                    <tr key={dt.id} className="hover:bg-slate-50/70">
+                      <td className="px-4 py-3 font-mono font-semibold text-slate-900 whitespace-nowrap">
+                        {dt.code}
+                      </td>
+                      <td className="px-4 py-3">
                         <button
                           type="button"
-                          disabled={!can('workorder:manage') && !can('operations:approve_shift')}
-                          onClick={() => {
-                            setClosingDowntimeId(dt.id);
-                            setFinalDownHours(dt.hoursDown);
-                          }}
-                          className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 whitespace-nowrap"
+                          onClick={() =>
+                            veh &&
+                            onNavigate({
+                              section: 'vehicle-detail',
+                              selectedVehicleId: veh.id,
+                              selectedVehicleTab: 'resumen',
+                            })
+                          }
+                          className="font-semibold text-slate-900 hover:text-blue-700"
                         >
-                          <Clock className="h-3 w-3" />
-                          Cerrar parada
+                          {veh ? `${veh.code} · ${veh.name}` : dt.vehicleId}
                         </button>
-                      ) : (
-                        <span className="text-[11px] text-slate-400">Cerrado</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                        {linkedWo && (
+                          <div className="mt-0.5 text-[11px] text-blue-700">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onNavigate({ section: 'work-orders', selectedWorkOrderId: linkedWo.id })
+                              }
+                              className="hover:underline"
+                            >
+                              Vinculada a {linkedWo.code}
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-slate-800">{dt.category}</div>
+                        <div className="text-[11px] text-slate-600">{dt.reason}</div>
+                        {dt.impactNote && (
+                          <div className="mt-0.5 text-[11px] text-slate-400">{dt.impactNote}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-[11px] text-slate-600 whitespace-nowrap">
+                        <div>Inicio: {formatDate(dt.startedAt)}</div>
+                        <div>{dt.endedAt ? `Fin: ${formatDate(dt.endedAt)}` : 'En parada'}</div>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono font-semibold tabular-nums text-slate-900 whitespace-nowrap">
+                        {formatHours(dt.hoursDown)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span
+                          className={
+                            dt.status === 'Activo'
+                              ? 'font-semibold text-red-700'
+                              : 'font-medium text-emerald-700'
+                          }
+                        >
+                          {dt.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        {dt.status === 'Activo' ? (
+                          <button
+                            type="button"
+                            disabled={!can('workorder:manage') && !can('operations:approve_shift')}
+                            onClick={() => {
+                              setClosingDowntimeId(dt.id);
+                              setFinalDownHours(dt.hoursDown);
+                            }}
+                            className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 whitespace-nowrap"
+                          >
+                            <Clock className="h-3 w-3" />
+                            Cerrar parada
+                          </button>
+                        ) : (
+                          <span className="text-[11px] text-slate-400">Cerrado</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </TableViewport>
         </div>
       )}
 
       {/* Tab 3: Habilitación HSE (Stickers) */}
       {subTab === 'hse' && (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full border-collapse text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                <th className="px-4 py-2.5 font-medium">Equipo</th>
-                <th className="px-4 py-2.5 font-medium">Frente / Grupo</th>
-                <th className="px-4 py-2.5 font-medium">Código Sticker HSE</th>
-                <th className="px-4 py-2.5 font-medium">Vencimiento</th>
-                <th className="px-4 py-2.5 font-medium">Vigencia</th>
-                <th className="px-4 py-2.5 text-right font-medium">Habilitación</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {state.vehicles.map((veh) => {
-                const hse = computeHseStickerStatus(veh.hseStickerExpiry);
-                return (
-                  <tr key={veh.id} className="hover:bg-slate-50/70">
-                    <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onNavigate({
-                            section: 'vehicle-detail',
-                            selectedVehicleId: veh.id,
-                            selectedVehicleTab: 'resumen',
-                          })
-                        }
-                        className="font-semibold text-slate-900 hover:text-blue-700"
-                      >
-                        {veh.code} · {veh.name}
-                      </button>
-                      <div className="text-[11px] text-slate-500">
-                        {veh.licensePlate} · Estado: {veh.status}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">{veh.group}</td>
-                    <td className="px-4 py-3 font-mono font-medium text-slate-900">
-                      {veh.hseStickerCode || 'SIN-STICKER'}
-                    </td>
-                    <td className="px-4 py-3 font-mono tabular-nums text-slate-700 whitespace-nowrap">
-                      {formatDate(veh.hseStickerExpiry)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={hseStickerTextClass(hse.status)}>{hse.status}</span>
-                      {hse.status !== 'Pendiente' && (
-                        <span className="ml-1.5 font-mono text-[11px] tabular-nums text-slate-500">
-                          ({hse.remainingDays < 0 ? `${Math.abs(hse.remainingDays)}d vencido` : `${hse.remainingDays}d`})
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <button
-                        type="button"
-                        disabled={!can('operations:hse')}
-                        onClick={() => {
-                          setHseVehicleId(veh.id);
-                          setHseCode(`HSE-TMF-${new Date().getFullYear()}-${veh.code.slice(-2)}R`);
-                          const nextQuarter = new Date();
-                          nextQuarter.setMonth(nextQuarter.getMonth() + 3);
-                          setHseExpiry(nextQuarter.toISOString().slice(0, 10));
-                        }}
-                        className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 whitespace-nowrap"
-                      >
-                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-700" />
-                        Renovar Sticker
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <TableViewport label="Habilitación HSE">
+            <table className="vektor-data-table" style={{ minWidth: 810 }} aria-label="Habilitación HSE">
+              <colgroup>
+                <col style={{ width: 170 }} />
+                <col />
+                <col style={{ width: 135 }} />
+                <col style={{ width: 115 }} />
+                <col style={{ width: 100 }} />
+                <col style={{ width: 115 }} />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                  <th scope="col" className="px-4 py-2.5 font-medium">Equipo</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Frente y grupo</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Etiqueta HSE</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Vencimiento</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Vigencia</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Habilitación</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {state.vehicles.map((veh) => {
+                  const hse = computeHseStickerStatus(veh.hseStickerExpiry);
+                  return (
+                    <tr key={veh.id} className="hover:bg-slate-50/70">
+                      <td className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onNavigate({
+                              section: 'vehicle-detail',
+                              selectedVehicleId: veh.id,
+                              selectedVehicleTab: 'resumen',
+                            })
+                          }
+                          className="font-semibold text-slate-900 hover:text-blue-700"
+                        >
+                          {veh.code} · {veh.name}
+                        </button>
+                        <div className="text-[11px] text-slate-500">
+                          {veh.licensePlate} · Estado: {veh.status}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-700">{veh.group}</td>
+                      <td className="px-4 py-3 font-mono font-medium text-slate-900">
+                        {veh.hseStickerCode || 'SIN-STICKER'}
+                      </td>
+                      <td className="px-4 py-3 font-mono tabular-nums text-slate-700 whitespace-nowrap">
+                        {formatDate(veh.hseStickerExpiry)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`vektor-status ${hseStickerTextClass(hse.status)}`}>{hse.status}</span>
+                        {hse.status !== 'Pendiente' && (
+                          <span className="ml-1.5 font-mono text-[11px] tabular-nums text-slate-500">
+                            ({hse.remainingDays < 0 ? `${Math.abs(hse.remainingDays)}d vencido` : `${hse.remainingDays}d`})
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          disabled={!can('operations:hse')}
+                          onClick={() => {
+                            setHseVehicleId(veh.id);
+                            setHseCode(`HSE-TMF-${new Date().getFullYear()}-${veh.code.slice(-2)}R`);
+                            const nextQuarter = new Date();
+                            nextQuarter.setMonth(nextQuarter.getMonth() + 3);
+                            setHseExpiry(nextQuarter.toISOString().slice(0, 10));
+                          }}
+                          className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 whitespace-nowrap"
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5 text-emerald-700" />
+                          Renovar Sticker
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </TableViewport>
         </div>
       )}
 

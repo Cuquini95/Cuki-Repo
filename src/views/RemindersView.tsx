@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, Wrench } from 'lucide-react';
+import { TableViewport } from '../components/TableViewport';
 import { Modal } from '../components/Modal';
 import { useFleet } from '../store/FleetContext';
 import { RenewalReminder, RouteState, ServiceReminder } from '../types/fleet';
@@ -133,9 +134,9 @@ export const RemindersView: React.FC<RemindersViewProps> = ({ onNavigate }) => {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">Recordatorios</h1>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">PM y renovaciones</h1>
           <p className="mt-0.5 text-sm text-slate-500">
-            Mantenimiento preventivo automático por odómetro/calendario y renovaciones normativas.
+            Vencimientos por horas, kilómetros o fecha.
           </p>
         </div>
         <button
@@ -152,10 +153,11 @@ export const RemindersView: React.FC<RemindersViewProps> = ({ onNavigate }) => {
       </div>
 
       {/* Subtabs */}
-      <div className="flex items-center gap-1 rounded-md border border-slate-200 bg-slate-100/80 p-1 w-fit">
+      <div className="vektor-tabs" role="group" aria-label="Vistas disponibles">
         <button
           type="button"
           onClick={() => setSubTab('service')}
+          aria-pressed={subTab === 'service'}
           className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
             subTab === 'service' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
           }`}
@@ -166,6 +168,7 @@ export const RemindersView: React.FC<RemindersViewProps> = ({ onNavigate }) => {
         <button
           type="button"
           onClick={() => setSubTab('renewals')}
+          aria-pressed={subTab === 'renewals'}
           className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
             subTab === 'renewals' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
           }`}
@@ -176,174 +179,194 @@ export const RemindersView: React.FC<RemindersViewProps> = ({ onNavigate }) => {
       </div>
 
       {subTab === 'service' ? (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                <th className="px-4 py-2.5 font-medium">Vehículo</th>
-                <th className="px-4 py-2.5 font-medium">Tarea Preventiva</th>
-                <th className="px-4 py-2.5 font-medium">Estado</th>
-                <th className="px-4 py-2.5 font-medium">Próximo Vencimiento</th>
-                <th className="px-4 py-2.5 text-right font-medium">Margen</th>
-                <th className="px-4 py-2.5 text-right font-medium">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {state.serviceReminders.map((rem) => {
-                const veh = state.vehicles.find((v) => v.id === rem.vehicleId);
-                const computed = computeServiceReminderStatus(rem, veh);
-                const linkedWo = state.workOrders.find((w) => w.id === rem.linkedWorkOrderId);
-                return (
-                  <tr key={rem.id} className="hover:bg-slate-50/70">
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onNavigate({
-                            section: 'vehicle-detail',
-                            selectedVehicleId: rem.vehicleId,
-                            selectedVehicleTab: 'recordatorios',
-                          })
-                        }
-                        className="font-medium text-blue-700 hover:underline"
-                      >
-                        {veh ? `${veh.code} · ${veh.make}` : rem.vehicleId}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-slate-900">{rem.serviceTask}</div>
-                      <div className="text-[11px] text-slate-500">
-                        {rem.intervalHrs ? `Cada ${rem.intervalHrs} h` : `Cada ${formatDistance(rem.intervalKm, state.settings.distanceUnit)}`}{' '}
-                        o {rem.intervalMonths} meses
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className={reminderStatusTextClass(computed.status)}>{computed.status}</div>
-                      {linkedWo && (
+        <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <TableViewport label="Mantenimiento preventivo">
+            <table className="vektor-data-table" style={{ minWidth: 880 }} aria-label="Mantenimiento preventivo">
+              <colgroup>
+                <col style={{ width: 180 }} />
+                <col />
+                <col style={{ width: 95 }} />
+                <col style={{ width: 140 }} />
+                <col style={{ width: 100 }} />
+                <col style={{ width: 125 }} />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                  <th scope="col" className="px-4 py-2.5 font-medium">Equipo</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Servicio</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Estado</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Vence en</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Margen</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {state.serviceReminders.map((rem) => {
+                  const veh = state.vehicles.find((v) => v.id === rem.vehicleId);
+                  const computed = computeServiceReminderStatus(rem, veh);
+                  const linkedWo = state.workOrders.find((w) => w.id === rem.linkedWorkOrderId);
+                  return (
+                    <tr key={rem.id} className="hover:bg-slate-50/70">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <button
                           type="button"
                           onClick={() =>
-                            onNavigate({ section: 'work-orders', selectedWorkOrderId: linkedWo.id })
+                            onNavigate({
+                              section: 'vehicle-detail',
+                              selectedVehicleId: rem.vehicleId,
+                              selectedVehicleTab: 'recordatorios',
+                            })
                           }
-                          className="font-mono text-[11px] text-blue-700 hover:underline"
+                          className="font-medium text-blue-700 hover:underline"
                         >
-                          Vinculado a {linkedWo.code}
+                          {veh ? `${veh.code} · ${veh.make}` : rem.vehicleId}
                         </button>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-slate-700 whitespace-nowrap">
-                      <div>
-                        {typeof rem.nextDueHrs === 'number'
-                          ? formatHours(rem.nextDueHrs)
-                          : formatDistance(rem.nextDueKm, state.settings.distanceUnit)}
-                      </div>
-                      <div className="text-[11px] text-slate-500">{formatDate(rem.nextDueDate)}</div>
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
-                      {typeof computed.remainingHrs === 'number' ? (
-                        <div className={computed.remainingHrs <= 0 ? 'font-semibold text-red-700' : 'text-slate-700'}>
-                          {computed.remainingHrs >= 0
-                            ? `Faltan ${formatHours(computed.remainingHrs)}`
-                            : `Excedido ${formatHours(Math.abs(computed.remainingHrs))}`}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-slate-900">{rem.serviceTask}</div>
+                        <div className="text-[11px] text-slate-500">
+                          {rem.intervalHrs ? `Cada ${rem.intervalHrs} h` : `Cada ${formatDistance(rem.intervalKm, state.settings.distanceUnit)}`}{' '}
+                          o {rem.intervalMonths} meses
                         </div>
-                      ) : (
-                        <div className={computed.remainingKm <= 0 ? 'font-semibold text-red-700' : 'text-slate-700'}>
-                          {computed.remainingKm >= 0
-                            ? `Faltan ${formatDistance(computed.remainingKm, state.settings.distanceUnit)}`
-                            : `Excedido ${formatDistance(Math.abs(computed.remainingKm), state.settings.distanceUnit)}`}
-                        </div>
-                      )}
-                      <div className="text-[11px] text-slate-500">
-                        {computed.remainingDays >= 0
-                          ? `${computed.remainingDays} días`
-                          : `Vencido hace ${Math.abs(computed.remainingDays)} días`}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <div className="inline-flex items-center gap-2">
-                        {!linkedWo && (
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className={`vektor-status ${reminderStatusTextClass(computed.status)}`}>{computed.status}</div>
+                        {linkedWo && (
                           <button
                             type="button"
-                            disabled={!can('workorder:manage')}
-                            onClick={() => handleScheduleWorkOrder(rem)}
-                            className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-40"
+                            onClick={() =>
+                              onNavigate({ section: 'work-orders', selectedWorkOrderId: linkedWo.id })
+                            }
+                            className="font-mono text-[11px] text-blue-700 hover:underline"
                           >
-                            <Wrench className="h-3 w-3" />
-                            Crear OT
+                            Vinculado a {linkedWo.code}
                           </button>
                         )}
-                        <button
-                          type="button"
-                          disabled={!can('reminder:manage')}
-                          onClick={() => snoozeServiceReminder(rem.id, 14)}
-                          className="rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
-                        >
-                          Posponer 14d
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-slate-700 whitespace-nowrap">
+                        <div>
+                          {typeof rem.nextDueHrs === 'number'
+                            ? formatHours(rem.nextDueHrs)
+                            : formatDistance(rem.nextDueKm, state.settings.distanceUnit)}
+                        </div>
+                        <div className="text-[11px] text-slate-500">{formatDate(rem.nextDueDate)}</div>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
+                        {typeof computed.remainingHrs === 'number' ? (
+                          <div className={computed.remainingHrs <= 0 ? 'font-semibold text-red-700' : 'text-slate-700'}>
+                            {computed.remainingHrs >= 0
+                              ? `Faltan ${formatHours(computed.remainingHrs)}`
+                              : `Excedido ${formatHours(Math.abs(computed.remainingHrs))}`}
+                          </div>
+                        ) : (
+                          <div className={computed.remainingKm <= 0 ? 'font-semibold text-red-700' : 'text-slate-700'}>
+                            {computed.remainingKm >= 0
+                              ? `Faltan ${formatDistance(computed.remainingKm, state.settings.distanceUnit)}`
+                              : `Excedido ${formatDistance(Math.abs(computed.remainingKm), state.settings.distanceUnit)}`}
+                          </div>
+                        )}
+                        <div className="text-[11px] text-slate-500">
+                          {computed.remainingDays >= 0
+                            ? `${computed.remainingDays} días`
+                            : `Vencido hace ${Math.abs(computed.remainingDays)} días`}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-2">
+                          {!linkedWo && (
+                            <button
+                              type="button"
+                              disabled={!can('workorder:manage')}
+                              onClick={() => handleScheduleWorkOrder(rem)}
+                              className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:opacity-40"
+                            >
+                              <Wrench className="h-3 w-3" />
+                              Crear OT
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            disabled={!can('reminder:manage')}
+                            onClick={() => snoozeServiceReminder(rem.id, 14)}
+                            className="rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                          >
+                            Posponer 14d
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </TableViewport>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                <th className="px-4 py-2.5 font-medium">Tipo de Renovación</th>
-                <th className="px-4 py-2.5 font-medium">Entidad</th>
-                <th className="px-4 py-2.5 font-medium">Estado</th>
-                <th className="px-4 py-2.5 font-medium">Vencimiento</th>
-                <th className="px-4 py-2.5 text-right font-medium">Costo Estimado</th>
-                <th className="px-4 py-2.5 text-right font-medium">Acción</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {state.renewalReminders.map((ren) => {
-                const computed = computeRenewalStatus(ren);
-                const entityName =
-                  ren.entityType === 'Vehículo'
-                    ? (() => {
-                        const v = state.vehicles.find((item) => item.id === ren.entityId);
-                        return v ? `${v.code} · ${v.name}` : ren.entityId;
-                      })()
-                    : state.contacts.find((c) => c.id === ren.entityId)?.name || ren.entityId;
-                return (
-                  <tr key={ren.id} className="hover:bg-slate-50/70">
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-slate-900">{ren.renewalType}</div>
-                      {ren.notes && <div className="text-[11px] text-slate-500">{ren.notes}</div>}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {ren.entityType} · {entityName}
-                    </td>
-                    <td className={`px-4 py-3 ${reminderStatusTextClass(computed.status)}`}>
-                      {computed.status}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-slate-700">
-                      {formatDate(ren.dueDate)}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-900">
-                      {formatCurrency(ren.costEstimate, state.settings.currency)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        disabled={!can('reminder:manage') && !can('operations:hse')}
-                        onClick={() => completeRenewalReminder(ren.id)}
-                        className="rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
-                      >
-                        Marcar renovada
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <TableViewport label="Renovaciones">
+            <table className="vektor-data-table" style={{ minWidth: 835 }} aria-label="Renovaciones">
+              <colgroup>
+                <col style={{ width: 180 }} />
+                <col />
+                <col style={{ width: 100 }} />
+                <col style={{ width: 115 }} />
+                <col style={{ width: 120 }} />
+                <col style={{ width: 125 }} />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                  <th scope="col" className="px-4 py-2.5 font-medium">Renovación</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Entidad</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Estado</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Vencimiento</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Costo estimado</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {state.renewalReminders.map((ren) => {
+                  const computed = computeRenewalStatus(ren);
+                  const entityName =
+                    ren.entityType === 'Vehículo'
+                      ? (() => {
+                          const v = state.vehicles.find((item) => item.id === ren.entityId);
+                          return v ? `${v.code} · ${v.name}` : ren.entityId;
+                        })()
+                      : state.contacts.find((c) => c.id === ren.entityId)?.name || ren.entityId;
+                  return (
+                    <tr key={ren.id} className="hover:bg-slate-50/70">
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-slate-900">{ren.renewalType}</div>
+                        {ren.notes && <div className="text-[11px] text-slate-500">{ren.notes}</div>}
+                      </td>
+                      <td className="px-4 py-3 text-slate-700">
+                        {ren.entityType} · {entityName}
+                      </td>
+                      <td className={`px-4 py-3 ${reminderStatusTextClass(computed.status)}`}>
+                        {computed.status}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-slate-700">
+                        {formatDate(ren.dueDate)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-900">
+                        {formatCurrency(ren.costEstimate, state.settings.currency)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          type="button"
+                          disabled={!can('reminder:manage') && !can('operations:hse')}
+                          onClick={() => completeRenewalReminder(ren.id)}
+                          className="rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                        >
+                          Marcar renovada
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </TableViewport>
         </div>
       )}
 

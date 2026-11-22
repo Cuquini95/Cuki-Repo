@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowUpDown, Download, FileSpreadsheet, Plus, Search } from 'lucide-react';
+import { TableViewport } from '../components/TableViewport';
 import { Modal } from '../components/Modal';
 import { useFleet } from '../store/FleetContext';
 import {
@@ -168,7 +169,7 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
         'Horómetro (h)',
         'Odómetro (km)',
         'Próx PM',
-        'Sticker HSE',
+        'Etiqueta HSE',
         'Vence HSE',
       ],
       source.map((v) => [
@@ -234,9 +235,9 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">Flota y Equipos</h1>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">Equipos</h1>
           <p className="mt-0.5 text-sm text-slate-500">
-            Inventario de maquinaria pesada, volquetes y soporte en {state.settings.projectCode} con horómetro, PM y Sticker HSE.
+            Estado, medidores, mantenimiento y etiqueta HSE.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -246,7 +247,7 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
             className="inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3.5 text-xs font-medium text-slate-700 hover:bg-slate-50 whitespace-nowrap shrink-0"
           >
             <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-700" />
-            Google Sheets / Importar
+            Importar equipos
           </button>
           <button
             type="button"
@@ -264,14 +265,14 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
             className="inline-flex h-9 items-center gap-1.5 rounded-md bg-blue-700 px-3.5 text-xs font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 whitespace-nowrap shrink-0"
           >
             <Plus className="h-4 w-4" />
-            Nuevo Equipo
+            Nuevo equipo
           </button>
         </div>
       </div>
 
       {/* Status Segmented Tabs + Filters */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-slate-100/80 p-1">
+        <div className="vektor-tabs" role="group" aria-label="Vistas disponibles">
           {STATUS_TABS.map((tab) => {
             const count =
               tab === 'Todos'
@@ -283,6 +284,7 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
                 key={tab}
                 type="button"
                 onClick={() => setStatusFilter(tab)}
+                aria-pressed={statusFilter === tab}
                 className={`rounded px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap ${
                   active
                     ? 'bg-white text-slate-900 shadow-xs'
@@ -364,148 +366,160 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
       )}
 
       {/* High-Density Data Grid */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
         {filtered.length === 0 ? (
           <div className="px-6 py-12 text-center">
             <p className="text-sm font-medium text-slate-900">No se encontraron equipos</p>
             <p className="mt-1 text-xs text-slate-500">
-              Ajusta los filtros de estado/grupo o importa tu hoja FLOTA en Configuración.
+              Cambia los filtros o importa equipos en Configuración.
             </p>
           </div>
         ) : (
-          <table className="w-full border-collapse text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                <th className="w-10 px-4 py-2.5">
-                  <input
-                    type="checkbox"
-                    aria-label="Seleccionar todos"
-                    checked={selectedIds.length === filtered.length && filtered.length > 0}
-                    onChange={toggleSelectAll}
-                    className="h-3.5 w-3.5 rounded border-slate-300 text-blue-700"
-                  />
-                </th>
-                <th className="px-4 py-2.5 font-medium">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('code')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Equipo <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </th>
-                <th className="px-4 py-2.5 font-medium">Estado</th>
-                <th className="px-4 py-2.5 font-medium">Frente / Tipo</th>
-                <th className="px-4 py-2.5 font-medium">Sticker HSE</th>
-                <th className="px-4 py-2.5 text-right font-medium">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('horometerHrs')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Horómetro / PM <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </th>
-                <th className="px-4 py-2.5 text-right font-medium">
-                  <button
-                    type="button"
-                    onClick={() => toggleSort('odometerKm')}
-                    className="inline-flex items-center gap-1 hover:text-slate-900"
-                  >
-                    Odómetro <ArrowUpDown className="h-3 w-3" />
-                  </button>
-                </th>
-                <th className="px-4 py-2.5 text-right font-medium">Incidencias</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.map((veh) => {
-                const operator = state.contacts.find((c) => c.id === veh.assignedOperatorId);
-                const openIssues = state.issues.filter(
-                  (i) => i.vehicleId === veh.id && (i.status === 'Abierta' || i.status === 'En atención')
-                ).length;
-                const hse = computeHseStickerStatus(veh.hseStickerExpiry);
-                return (
-                  <tr key={veh.id} className="transition-colors hover:bg-slate-50/80">
-                    <td className="px-4 py-3">
-                      <input
-                        type="checkbox"
-                        aria-label={`Seleccionar ${veh.code}`}
-                        checked={selectedIds.includes(veh.id)}
-                        onChange={() => toggleSelectOne(veh.id)}
-                        className="h-3.5 w-3.5 rounded border-slate-300 text-blue-700"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onNavigate({
-                            section: 'vehicle-detail',
-                            selectedVehicleId: veh.id,
-                            selectedVehicleTab: 'resumen',
-                          })
-                        }
-                        className="text-left"
-                      >
-                        <div className="font-semibold text-slate-900 hover:text-blue-700">
-                          {veh.code} · {veh.name}
-                        </div>
-                        <div className="mt-0.5 text-[11px] text-slate-500">
-                          {veh.year} {veh.make} {veh.model} ·{' '}
-                          <span className="font-mono text-slate-700">{veh.licensePlate}</span>
-                          {operator ? ` · ${operator.name}` : ''}
-                        </div>
-                      </button>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={vehicleStatusTextClass(veh.status)}>{veh.status}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-slate-800">{veh.group}</div>
-                      <div className="text-[11px] text-slate-500">{veh.type}</div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className={hseStickerTextClass(hse.status)}>{hse.status}</div>
-                      <div className="font-mono text-[11px] text-slate-500">{veh.hseStickerCode}</div>
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
-                      <div className="font-medium text-slate-900">
-                        {veh.horometerHrs > 0 ? formatHours(veh.horometerHrs) : '—'}
-                      </div>
-                      <div className="text-[11px] text-slate-500">
-                        {veh.nextPmLevel} @ {veh.nextPmHours}h
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono font-medium tabular-nums text-slate-900 whitespace-nowrap">
-                      {veh.odometerKm > 0
-                        ? formatDistance(veh.odometerKm, state.settings.distanceUnit)
-                        : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
-                      {openIssues > 0 ? (
+          <TableViewport label="Flota y equipos">
+            <table className="vektor-data-table vektor-mobile-cards" style={{ minWidth: 1054 }} aria-label="Flota y equipos" role="table">
+              <colgroup>
+                <col style={{ width: 44 }} />
+                <col />
+                <col style={{ width: 130 }} />
+                <col style={{ width: 195 }} />
+                <col style={{ width: 105 }} />
+                <col style={{ width: 125 }} />
+                <col style={{ width: 110 }} />
+                <col style={{ width: 90 }} />
+              </colgroup>
+              <thead role="rowgroup">
+                <tr role="row" className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                  <th role="columnheader" scope="col" className="w-10 px-4 py-2.5">
+                    <input
+                      type="checkbox"
+                      aria-label="Seleccionar todos"
+                      checked={selectedIds.length === filtered.length && filtered.length > 0}
+                      onChange={toggleSelectAll}
+                      className="h-3.5 w-3.5 rounded border-slate-300 text-blue-700"
+                    />
+                  </th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 font-medium">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('code')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Equipo <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 font-medium">Estado</th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 font-medium">Frente y tipo</th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 font-medium">Etiqueta HSE</th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 text-right font-medium">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('horometerHrs')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Horómetro y PM <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 text-right font-medium">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort('odometerKm')}
+                      className="inline-flex items-center gap-1 hover:text-slate-900"
+                    >
+                      Odómetro <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 text-right font-medium">Fallas abiertas</th>
+                </tr>
+              </thead>
+              <tbody role="rowgroup" className="divide-y divide-slate-100">
+                {filtered.map((veh) => {
+                  const operator = state.contacts.find((c) => c.id === veh.assignedOperatorId);
+                  const openIssues = state.issues.filter(
+                    (i) => i.vehicleId === veh.id && (i.status === 'Abierta' || i.status === 'En atención')
+                  ).length;
+                  const hse = computeHseStickerStatus(veh.hseStickerExpiry);
+                  return (
+                    <tr role="row" key={veh.id} className="transition-colors hover:bg-slate-50/80">
+                      <td role="cell" className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          aria-label={`Seleccionar ${veh.code}`}
+                          checked={selectedIds.includes(veh.id)}
+                          onChange={() => toggleSelectOne(veh.id)}
+                          className="h-3.5 w-3.5 rounded border-slate-300 text-blue-700"
+                        />
+                      </td>
+                      <td role="cell" data-label="Equipo" data-card-wide className="px-4 py-3">
                         <button
                           type="button"
                           onClick={() =>
                             onNavigate({
                               section: 'vehicle-detail',
                               selectedVehicleId: veh.id,
-                              selectedVehicleTab: 'incidencias',
+                              selectedVehicleTab: 'resumen',
                             })
                           }
-                          className="font-semibold text-red-700 hover:underline"
+                          className="text-left"
                         >
-                          {openIssues} abierta{openIssues > 1 ? 's' : ''}
+                          <div className="font-semibold text-slate-900 hover:text-blue-700">
+                            {veh.code} · {veh.name}
+                          </div>
+                          <div className="mt-0.5 text-[11px] text-slate-500">
+                            {veh.year} {veh.make} {veh.model} ·{' '}
+                            <span className="font-mono text-slate-700">{veh.licensePlate}</span>
+                            {operator ? ` · ${operator.name}` : ''}
+                          </div>
                         </button>
-                      ) : (
-                        <span className="text-slate-400">0</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td role="cell" data-label="Estado" className="px-4 py-3 whitespace-nowrap">
+                        <span className={`vektor-status ${vehicleStatusTextClass(veh.status)}`}>{veh.status}</span>
+                      </td>
+                      <td role="cell" data-label="Frente y tipo" data-card-wide className="px-4 py-3">
+                        <div className="text-slate-800">{veh.group}</div>
+                        <div className="text-[11px] text-slate-500">{veh.type}</div>
+                      </td>
+                      <td role="cell" data-label="Etiqueta HSE" className="px-4 py-3 whitespace-nowrap">
+                        <div className={`vektor-status ${hseStickerTextClass(hse.status)}`}>{hse.status}</div>
+                        <div className="font-mono text-[11px] text-slate-500">{veh.hseStickerCode}</div>
+                      </td>
+                      <td role="cell" data-label="Horómetro y PM" className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
+                        <div className="font-medium text-slate-900">
+                          {veh.horometerHrs > 0 ? formatHours(veh.horometerHrs) : '—'}
+                        </div>
+                        <div className="text-[11px] text-slate-500">
+                          {veh.nextPmLevel} @ {veh.nextPmHours}h
+                        </div>
+                      </td>
+                      <td role="cell" data-label="Odómetro" className="px-4 py-3 text-right font-mono font-medium tabular-nums text-slate-900 whitespace-nowrap">
+                        {veh.odometerKm > 0
+                          ? formatDistance(veh.odometerKm, state.settings.distanceUnit)
+                          : '—'}
+                      </td>
+                      <td role="cell" data-label="Fallas abiertas" className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
+                        {openIssues > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onNavigate({
+                                section: 'vehicle-detail',
+                                selectedVehicleId: veh.id,
+                                selectedVehicleTab: 'incidencias',
+                              })
+                            }
+                            className="font-semibold text-red-700 hover:underline"
+                          >
+                            {openIssues} abierta{openIssues > 1 ? 's' : ''}
+                          </button>
+                        ) : (
+                          <span className="text-slate-400">0</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </TableViewport>
         )}
       </div>
 
@@ -513,8 +527,8 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
       <Modal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="Registrar Nuevo Equipo / Vehículo"
-        subtitle="Alta en inventario con lectura inicial de horómetro/odómetro, PM y Sticker HSE."
+        title="Registrar Nuevo equipo / Vehículo"
+        subtitle="Alta en inventario con lectura inicial de horómetro/odómetro, PM y Etiqueta HSE."
         footer={
           <>
             <button
@@ -678,7 +692,7 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
               />
             </div>
             <div>
-              <label className="block font-medium text-slate-700">Código Sticker HSE</label>
+              <label className="block font-medium text-slate-700">Código Etiqueta HSE</label>
               <input
                 type="text"
                 value={draft.hseStickerCode}
@@ -687,7 +701,7 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({
               />
             </div>
             <div>
-              <label className="block font-medium text-slate-700">Vencimiento Sticker HSE</label>
+              <label className="block font-medium text-slate-700">Vencimiento Etiqueta HSE</label>
               <input
                 type="date"
                 value={draft.hseStickerExpiry}

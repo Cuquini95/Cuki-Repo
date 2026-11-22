@@ -24,17 +24,17 @@ const SECTION_TITLES: Record<RouteState['section'], string> = {
   dashboard: 'Centro de mando',
   vehicles: 'Equipos',
   'vehicle-detail': 'Ficha de Equipo',
-  operations: 'Mi turno',
+  operations: 'Producción y despacho',
   inspections: 'Inspecciones',
   issues: 'Fallas',
-  reminders: 'Mantenimiento PM',
+  reminders: 'PM y renovaciones',
   'work-orders': 'Órdenes de trabajo',
-  tires: 'Control de Llantas',
-  fuel: 'Diésel y Combustible',
+  tires: 'Llantas',
+  fuel: 'Combustible',
   parts: 'Inventario',
   purchasing: 'Compras',
   directory: 'Directorio',
-  reports: 'Reportes TCO',
+  reports: 'Costos de flota',
   settings: 'Configuración',
   audit: 'Auditoría funcional',
 };
@@ -73,7 +73,7 @@ const FleetAppShell: React.FC = () => {
       const veh = state.vehicles.find((v) => v.id === route.selectedVehicleId);
       return [
         ...base,
-        { label: 'Flota y Equipos', onClick: () => setRoute({ section: 'vehicles' }) },
+        { label: 'Equipos', onClick: () => setRoute({ section: 'vehicles' }) },
         { label: veh ? `${veh.code} · ${veh.name}` : 'Detalle' },
       ];
     }

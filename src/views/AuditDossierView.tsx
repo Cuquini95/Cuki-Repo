@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { CheckCircle2, Download, Play } from 'lucide-react';
+import { TableViewport } from '../components/TableViewport';
 import {
   AUDIT_PARAMETERS,
   COVERAGE_MATRIX,
@@ -83,10 +84,10 @@ export const AuditDossierView: React.FC = () => {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900">
-            Auditoría funcional del prototipo
+            Auditoría funcional
           </h1>
           <p className="mt-0.5 text-sm text-slate-500">
-            Referencia histórica: <span className="font-mono text-slate-700">Fleetio</span> · Reconstrucción operativa con identidad visual propia en Vektor Flota.
+            Cobertura de pantallas y pruebas del prototipo.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -96,7 +97,7 @@ export const AuditDossierView: React.FC = () => {
             className="inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3.5 text-xs font-medium text-slate-700 hover:bg-slate-50 whitespace-nowrap"
           >
             <Download className="h-3.5 w-3.5" />
-            Exportar Matriz CSV
+            Exportar CSV
           </button>
           <button
             type="button"
@@ -107,25 +108,26 @@ export const AuditDossierView: React.FC = () => {
             className="inline-flex h-9 items-center gap-1.5 rounded-md bg-blue-700 px-3.5 text-xs font-medium text-white hover:bg-blue-800 whitespace-nowrap"
           >
             <Play className="h-3.5 w-3.5" />
-            Ejecutar Pruebas en Vivo
+            Ejecutar pruebas
           </button>
         </div>
       </div>
 
       {/* Subtabs */}
-      <div className="flex flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-slate-100/80 p-1 w-fit">
+      <div className="vektor-tabs" role="group" aria-label="Vistas disponibles">
         {(
           [
-            ['overview', 'Parámetros, Mapa y Bloqueos'],
-            ['coverage', 'Matriz de Cobertura por Nivel'],
-            ['dictionary', 'Diccionario de Pantallas y Controles'],
-            ['tests', 'Verificación de Flujos en Vivo'],
+            ['overview', 'Alcance'],
+            ['coverage', 'Cobertura'],
+            ['dictionary', 'Pantallas y controles'],
+            ['tests', 'Resultados de pruebas'],
           ] as const
         ).map(([id, label]) => (
           <button
             key={id}
             type="button"
             onClick={() => setSubTab(id)}
+            aria-pressed={subTab === id}
             className={`rounded px-3 py-1.5 text-xs font-medium transition-colors whitespace-nowrap ${
               subTab === id ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
@@ -151,63 +153,77 @@ export const AuditDossierView: React.FC = () => {
           </section>
 
           {/* Parameters */}
-          <section className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+          <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
             <div className="border-b border-slate-200 px-5 py-3.5">
               <h2 className="text-sm font-semibold text-slate-900">Parámetros del Encargo</h2>
             </div>
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500">
-                  <th className="w-44 px-5 py-2.5 font-medium">Parámetro</th>
-                  <th className="px-5 py-2.5 font-medium">Determinación en sesión</th>
-                  <th className="w-32 px-5 py-2.5 font-medium">Estado</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {AUDIT_PARAMETERS.map((row) => (
-                  <tr key={row.param}>
-                    <td className="px-5 py-3 font-semibold text-slate-900">{row.param}</td>
-                    <td className="px-5 py-3 text-slate-700">{row.value}</td>
-                    <td
-                      className={`px-5 py-3 font-medium ${
-                        row.status === 'Bloqueado'
-                          ? 'text-red-700'
-                          : row.status === 'Observado'
-                          ? 'text-emerald-700'
-                          : 'text-amber-700'
-                      }`}
-                    >
-                      {row.status}
-                    </td>
+            <TableViewport label="Parámetros de auditoría">
+              <table className="vektor-data-table" style={{ minWidth: 620 }} aria-label="Parámetros de auditoría">
+                <colgroup>
+                  <col style={{ width: 180 }} />
+                  <col />
+                  <col style={{ width: 100 }} />
+                </colgroup>
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500">
+                    <th scope="col" className="w-44 px-5 py-2.5 font-medium">Parámetro</th>
+                    <th scope="col" className="px-5 py-2.5 font-medium">Descripción</th>
+                    <th scope="col" className="w-32 px-5 py-2.5 font-medium">Estado</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {AUDIT_PARAMETERS.map((row) => (
+                    <tr key={row.param}>
+                      <td className="px-5 py-3 font-semibold text-slate-900">{row.param}</td>
+                      <td className="px-5 py-3 text-slate-700">{row.value}</td>
+                      <td
+                        className={`px-5 py-3 font-medium ${
+                          row.status === 'Bloqueado'
+                            ? 'text-red-700'
+                            : row.status === 'Observado'
+                            ? 'text-emerald-700'
+                            : 'text-amber-700'
+                        }`}
+                      >
+                        {row.status}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableViewport>
           </section>
 
           {/* Functional Map */}
-          <section className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+          <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
             <div className="border-b border-slate-200 px-5 py-3.5">
               <h2 className="text-sm font-semibold text-slate-900">Mapa Funcional del Producto</h2>
             </div>
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500">
-                  <th className="w-56 px-5 py-2.5 font-medium">Dimensión</th>
-                  <th className="px-5 py-2.5 font-medium">Hallazgo y Comportamiento Contratado</th>
-                  <th className="w-32 px-5 py-2.5 font-medium">Clasificación</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {FUNCTIONAL_MAP.map((row) => (
-                  <tr key={row.dimension}>
-                    <td className="px-5 py-3 font-semibold text-slate-900">{row.dimension}</td>
-                    <td className="px-5 py-3 text-slate-700 leading-relaxed">{row.finding}</td>
-                    <td className="px-5 py-3 font-medium text-slate-700">{row.status}</td>
+            <TableViewport label="Mapa funcional">
+              <table className="vektor-data-table" style={{ minWidth: 655 }} aria-label="Mapa funcional">
+                <colgroup>
+                  <col style={{ width: 170 }} />
+                  <col />
+                  <col style={{ width: 115 }} />
+                </colgroup>
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500">
+                    <th scope="col" className="w-56 px-5 py-2.5 font-medium">Dimensión</th>
+                    <th scope="col" className="px-5 py-2.5 font-medium">Hallazgo</th>
+                    <th scope="col" className="w-32 px-5 py-2.5 font-medium">Clasificación</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {FUNCTIONAL_MAP.map((row) => (
+                    <tr key={row.dimension}>
+                      <td className="px-5 py-3 font-semibold text-slate-900">{row.dimension}</td>
+                      <td className="px-5 py-3 text-slate-700 leading-relaxed">{row.finding}</td>
+                      <td className="px-5 py-3 font-medium text-slate-700">{row.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableViewport>
           </section>
         </div>
       )}
@@ -215,36 +231,46 @@ export const AuditDossierView: React.FC = () => {
       {subTab === 'coverage' && (
         <div className="space-y-5">
           {/* Denominators per level */}
-          <section className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+          <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
             <div className="border-b border-slate-200 px-5 py-3.5">
               <h2 className="text-sm font-semibold text-slate-900">
                 Denominadores Separados por Nivel (Sin porcentaje global engañoso)
               </h2>
             </div>
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500">
-                  <th className="px-4 py-2.5 font-medium">Nivel</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Inventariados</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Documentados (Ref)</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Bloqueados (Ref)</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Implementados (Propio)</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Pruebas Aprobadas</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-mono tabular-nums">
-                {levelDenominators.map((d) => (
-                  <tr key={d.level}>
-                    <td className="px-4 py-2.5 font-sans font-semibold text-slate-900">{d.level}</td>
-                    <td className="px-4 py-2.5 text-right text-slate-800">{d.discovered}</td>
-                    <td className="px-4 py-2.5 text-right text-slate-700">{d.documented}</td>
-                    <td className="px-4 py-2.5 text-right text-red-700">{d.blockedRef}</td>
-                    <td className="px-4 py-2.5 text-right text-emerald-700">{d.implemented}</td>
-                    <td className="px-4 py-2.5 text-right text-blue-700">{d.passedTests}</td>
+            <TableViewport label="Cobertura por nivel">
+              <table className="vektor-data-table" style={{ minWidth: 660 }} aria-label="Cobertura por nivel">
+                <colgroup>
+                  <col />
+                  <col style={{ width: 95 }} />
+                  <col style={{ width: 110 }} />
+                  <col style={{ width: 110 }} />
+                  <col style={{ width: 120 }} />
+                  <col style={{ width: 105 }} />
+                </colgroup>
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500">
+                    <th scope="col" className="px-4 py-2.5 font-medium">Nivel</th>
+                    <th scope="col" className="px-4 py-2.5 text-right font-medium">Inventariados</th>
+                    <th scope="col" className="px-4 py-2.5 text-right font-medium">Documentados (Ref)</th>
+                    <th scope="col" className="px-4 py-2.5 text-right font-medium">Bloqueados (Ref)</th>
+                    <th scope="col" className="px-4 py-2.5 text-right font-medium">Implementados (Propio)</th>
+                    <th scope="col" className="px-4 py-2.5 text-right font-medium">Pruebas aprobadas</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-mono tabular-nums">
+                  {levelDenominators.map((d) => (
+                    <tr key={d.level}>
+                      <td className="px-4 py-2.5 font-sans font-semibold text-slate-900">{d.level}</td>
+                      <td className="px-4 py-2.5 text-right text-slate-800">{d.discovered}</td>
+                      <td className="px-4 py-2.5 text-right text-slate-700">{d.documented}</td>
+                      <td className="px-4 py-2.5 text-right text-red-700">{d.blockedRef}</td>
+                      <td className="px-4 py-2.5 text-right text-emerald-700">{d.implemented}</td>
+                      <td className="px-4 py-2.5 text-right text-blue-700">{d.passedTests}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableViewport>
           </section>
 
           <div className="flex items-center gap-2">
@@ -267,97 +293,119 @@ export const AuditDossierView: React.FC = () => {
             )}
           </div>
 
-          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                  <th className="px-3 py-2.5 font-medium">ID</th>
-                  <th className="px-3 py-2.5 font-medium">Tipo</th>
-                  <th className="px-3 py-2.5 font-medium">Padre</th>
-                  <th className="px-3 py-2.5 font-medium">Entrada</th>
-                  <th className="px-3 py-2.5 font-medium">Estado Ref.</th>
-                  <th className="px-3 py-2.5 font-medium">Producto Propio</th>
-                  <th className="px-3 py-2.5 font-medium">Prueba / Resultado</th>
-                  <th className="px-3 py-2.5 font-medium">Pendiente</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredCoverage.map((row) => (
-                  <tr key={row.id} className="hover:bg-slate-50/70">
-                    <td className="px-3 py-3 font-mono font-semibold text-slate-900 whitespace-nowrap">
-                      {row.id}
-                    </td>
-                    <td className="px-3 py-3 text-slate-600 whitespace-nowrap">{row.type}</td>
-                    <td className="px-3 py-3 font-mono text-slate-500 whitespace-nowrap">{row.parent}</td>
-                    <td className="max-w-xs px-3 py-3 font-medium text-slate-900">{row.entry}</td>
-                    <td
-                      className={`px-3 py-3 font-medium whitespace-nowrap ${
-                        row.referenceState === 'Bloqueado' ? 'text-red-700' : 'text-slate-700'
-                      }`}
-                    >
-                      {row.referenceState}
-                    </td>
-                    <td className="px-3 py-3 text-emerald-700 font-medium whitespace-nowrap">
-                      {row.ownProductState}
-                    </td>
-                    <td className="px-3 py-3 whitespace-nowrap">
-                      <span className="font-mono text-slate-500">{row.testId}</span> ·{' '}
-                      <span
-                        className={
-                          row.testResult === 'Aprobada'
-                            ? 'font-medium text-emerald-700'
-                            : 'font-medium text-red-700'
-                        }
-                      >
-                        {row.testResult}
-                      </span>
-                    </td>
-                    <td className="max-w-xs px-3 py-3 text-[11px] text-slate-600">{row.pending}</td>
+          <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <TableViewport label="Matriz de cobertura">
+              <table className="vektor-data-table" style={{ minWidth: 1080 }} aria-label="Matriz de cobertura">
+                <colgroup>
+                  <col style={{ width: 80 }} />
+                  <col style={{ width: 105 }} />
+                  <col style={{ width: 105 }} />
+                  <col />
+                  <col style={{ width: 120 }} />
+                  <col style={{ width: 135 }} />
+                  <col style={{ width: 125 }} />
+                  <col style={{ width: 180 }} />
+                </colgroup>
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                    <th scope="col" className="px-3 py-2.5 font-medium">ID</th>
+                    <th scope="col" className="px-3 py-2.5 font-medium">Tipo</th>
+                    <th scope="col" className="px-3 py-2.5 font-medium">Padre</th>
+                    <th scope="col" className="px-3 py-2.5 font-medium">Entrada</th>
+                    <th scope="col" className="px-3 py-2.5 font-medium">Estado Ref.</th>
+                    <th scope="col" className="px-3 py-2.5 font-medium">Producto Propio</th>
+                    <th scope="col" className="px-3 py-2.5 font-medium">Prueba / Resultado</th>
+                    <th scope="col" className="px-3 py-2.5 font-medium">Pendiente</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredCoverage.map((row) => (
+                    <tr key={row.id} className="hover:bg-slate-50/70">
+                      <td className="px-3 py-3 font-mono font-semibold text-slate-900 whitespace-nowrap">
+                        {row.id}
+                      </td>
+                      <td className="px-3 py-3 text-slate-600 whitespace-nowrap">{row.type}</td>
+                      <td className="px-3 py-3 font-mono text-slate-500 whitespace-nowrap">{row.parent}</td>
+                      <td className="max-w-xs px-3 py-3 font-medium text-slate-900">{row.entry}</td>
+                      <td
+                        className={`px-3 py-3 font-medium whitespace-nowrap ${
+                          row.referenceState === 'Bloqueado' ? 'text-red-700' : 'text-slate-700'
+                        }`}
+                      >
+                        {row.referenceState}
+                      </td>
+                      <td className="px-3 py-3 text-emerald-700 font-medium whitespace-nowrap">
+                        {row.ownProductState}
+                      </td>
+                      <td className="px-3 py-3 whitespace-nowrap">
+                        <span className="font-mono text-slate-500">{row.testId}</span> ·{' '}
+                        <span
+                          className={
+                            row.testResult === 'Aprobada'
+                              ? 'font-medium text-emerald-700'
+                              : 'font-medium text-red-700'
+                          }
+                        >
+                          {row.testResult}
+                        </span>
+                      </td>
+                      <td className="max-w-xs px-3 py-3 text-[11px] text-slate-600">{row.pending}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableViewport>
           </div>
         </div>
       )}
 
       {subTab === 'dictionary' && (
-        <section className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+        <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
           <div className="border-b border-slate-200 px-5 py-3.5">
             <h2 className="text-sm font-semibold text-slate-900">
               Diccionario de Pantallas, Controles y Equivalencia Fleetio → Vektor Flota
             </h2>
           </div>
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                <th className="px-4 py-2.5 font-medium">Nodo</th>
-                <th className="px-4 py-2.5 font-medium">Pantalla</th>
-                <th className="px-4 py-2.5 font-medium">Control Referencia (Fleetio)</th>
-                <th className="px-4 py-2.5 font-medium">Control Destino (Vektor Flota)</th>
-                <th className="px-4 py-2.5 font-medium">Unidades</th>
-                <th className="px-4 py-2.5 font-medium">Validación y Efecto Cruzado</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {SCREEN_DICTIONARY.map((row) => (
-                <tr key={row.nodeId} className="hover:bg-slate-50/70">
-                  <td className="px-4 py-3 font-mono font-semibold text-slate-900 whitespace-nowrap">
-                    {row.nodeId}
-                  </td>
-                  <td className="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">
-                    {row.screen}
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{row.referenceControl}</td>
-                  <td className="px-4 py-3 font-medium text-blue-700">{row.ownControl}</td>
-                  <td className="px-4 py-3 font-mono text-[11px] text-slate-600 whitespace-nowrap">
-                    {row.unitOrCurrency}
-                  </td>
-                  <td className="max-w-md px-4 py-3 text-slate-700">{row.validationAndEffect}</td>
+          <TableViewport label="Diccionario de pantallas">
+            <table className="vektor-data-table" style={{ minWidth: 905 }} aria-label="Diccionario de pantallas">
+              <colgroup>
+                <col style={{ width: 85 }} />
+                <col style={{ width: 125 }} />
+                <col style={{ width: 160 }} />
+                <col style={{ width: 190 }} />
+                <col style={{ width: 95 }} />
+                <col />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                  <th scope="col" className="px-4 py-2.5 font-medium">Nodo</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Pantalla</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Control Referencia (Fleetio)</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Control Destino (Vektor Flota)</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Unidades</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Validación y Efecto Cruzado</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {SCREEN_DICTIONARY.map((row) => (
+                  <tr key={row.nodeId} className="hover:bg-slate-50/70">
+                    <td className="px-4 py-3 font-mono font-semibold text-slate-900 whitespace-nowrap">
+                      {row.nodeId}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">
+                      {row.screen}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">{row.referenceControl}</td>
+                    <td className="px-4 py-3 font-medium text-blue-700">{row.ownControl}</td>
+                    <td className="px-4 py-3 font-mono text-[11px] text-slate-600 whitespace-nowrap">
+                      {row.unitOrCurrency}
+                    </td>
+                    <td className="max-w-md px-4 py-3 text-slate-700">{row.validationAndEffect}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableViewport>
         </section>
       )}
 
@@ -378,7 +426,7 @@ export const AuditDossierView: React.FC = () => {
               className="inline-flex h-8 items-center gap-1.5 rounded-md bg-slate-900 px-3 text-xs font-medium text-white hover:bg-slate-800 whitespace-nowrap"
             >
               <Play className="h-3 w-3" />
-              Re-ejecutar Suite ({testResults.filter((r) => r.status === 'Aprobada').length}/{testResults.length})
+              Volver a ejecutar ({testResults.filter((r) => r.status === 'Aprobada').length}/{testResults.length})
             </button>
           </div>
           <ul className="divide-y divide-slate-100">

@@ -1927,7 +1927,7 @@ export const FleetProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const resetToFixtures = () => {
     localStorage.removeItem(STORAGE_KEY);
     setState(INITIAL_FLEET_STATE);
-    pushToast({ title: 'Datos Grupo Trans Plus restablecidos', tone: 'info' });
+    pushToast({ title: 'Datos de ejemplo restaurados', tone: 'info' });
   };
 
   const runAutomatedVerificationSuite = (): AutomatedTestResult[] => {

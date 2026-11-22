@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowLeft, Gauge, Trash2 } from 'lucide-react';
+import { TableViewport } from '../components/TableViewport';
 import { Modal } from '../components/Modal';
 import { useFleet } from '../store/FleetContext';
 import { FleetGroup, RouteState, VehicleStatus } from '../types/fleet';
@@ -361,41 +362,50 @@ export const VehicleDetailView: React.FC<VehicleDetailViewProps> = ({
           </div>
           {vehicleWorkOrders.length === 0 ? (
             <div className="px-5 py-10 text-center text-xs text-slate-500">
-              Sin historial de órdenes de trabajo para esta unidad.
+              Este equipo no tiene órdenes de trabajo.
             </div>
           ) : (
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                  <th className="px-5 py-2.5 font-medium">Orden</th>
-                  <th className="px-5 py-2.5 font-medium">Resumen</th>
-                  <th className="px-5 py-2.5 font-medium">Estado</th>
-                  <th className="px-5 py-2.5 font-medium">Fecha</th>
-                  <th className="px-5 py-2.5 text-right font-medium">Costo Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {vehicleWorkOrders.map((wo) => (
-                  <tr key={wo.id} className="hover:bg-slate-50">
-                    <td className="px-5 py-3 font-mono font-semibold text-blue-700">
-                      <button
-                        type="button"
-                        onClick={() => onNavigate({ section: 'work-orders', selectedWorkOrderId: wo.id })}
-                        className="hover:underline"
-                      >
-                        {wo.code}
-                      </button>
-                    </td>
-                    <td className="px-5 py-3 text-slate-800">{wo.summary}</td>
-                    <td className={`px-5 py-3 ${workOrderStatusTextClass(wo.status)}`}>{wo.status}</td>
-                    <td className="px-5 py-3 font-mono text-slate-600">{formatDate(wo.completedAt || wo.scheduledDate)}</td>
-                    <td className="px-5 py-3 text-right font-mono tabular-nums text-slate-900">
-                      {formatCurrency(computeWorkOrderTotals(wo).total, state.settings.currency)}
-                    </td>
+            <TableViewport label="Historial de órdenes">
+              <table className="vektor-data-table" style={{ minWidth: 680 }} aria-label="Historial de órdenes">
+                <colgroup>
+                  <col style={{ width: 105 }} />
+                  <col />
+                  <col style={{ width: 110 }} />
+                  <col style={{ width: 105 }} />
+                  <col style={{ width: 115 }} />
+                </colgroup>
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                    <th scope="col" className="px-5 py-2.5 font-medium">Orden</th>
+                    <th scope="col" className="px-5 py-2.5 font-medium">Resumen</th>
+                    <th scope="col" className="px-5 py-2.5 font-medium">Estado</th>
+                    <th scope="col" className="px-5 py-2.5 font-medium">Fecha</th>
+                    <th scope="col" className="px-5 py-2.5 text-right font-medium">Costo total</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {vehicleWorkOrders.map((wo) => (
+                    <tr key={wo.id} className="hover:bg-slate-50">
+                      <td className="px-5 py-3 font-mono font-semibold text-blue-700">
+                        <button
+                          type="button"
+                          onClick={() => onNavigate({ section: 'work-orders', selectedWorkOrderId: wo.id })}
+                          className="hover:underline"
+                        >
+                          {wo.code}
+                        </button>
+                      </td>
+                      <td className="px-5 py-3 text-slate-800">{wo.summary}</td>
+                      <td className={`px-5 py-3 ${workOrderStatusTextClass(wo.status)}`}>{wo.status}</td>
+                      <td className="px-5 py-3 font-mono text-slate-600">{formatDate(wo.completedAt || wo.scheduledDate)}</td>
+                      <td className="px-5 py-3 text-right font-mono tabular-nums text-slate-900">
+                        {formatCurrency(computeWorkOrderTotals(wo).total, state.settings.currency)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableViewport>
           )}
         </section>
       )}
@@ -431,7 +441,7 @@ export const VehicleDetailView: React.FC<VehicleDetailViewProps> = ({
                   </div>
                   <div className="shrink-0 text-right">
                     <div className={issuePriorityTextClass(iss.priority)}>{iss.priority}</div>
-                    <div className={issueStatusTextClass(iss.status)}>{iss.status}</div>
+                    <div className={`vektor-status ${issueStatusTextClass(iss.status)}`}>{iss.status}</div>
                   </div>
                 </li>
               ))}
@@ -454,40 +464,49 @@ export const VehicleDetailView: React.FC<VehicleDetailViewProps> = ({
           </div>
           {vehicleInspections.length === 0 ? (
             <div className="px-5 py-10 text-center text-xs text-slate-500">
-              Sin inspecciones DVIR enviadas para esta unidad.
+              Este equipo no tiene inspecciones registradas.
             </div>
           ) : (
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                  <th className="px-5 py-2.5 font-medium">Folio</th>
-                  <th className="px-5 py-2.5 font-medium">Formulario</th>
-                  <th className="px-5 py-2.5 font-medium">Fecha</th>
-                  <th className="px-5 py-2.5 font-medium">Resultado</th>
-                  <th className="px-5 py-2.5 text-right font-medium">Odómetro</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {vehicleInspections.map((insp) => (
-                  <tr key={insp.id}>
-                    <td className="px-5 py-3 font-mono font-semibold text-slate-900">{insp.code}</td>
-                    <td className="px-5 py-3 text-slate-700">{insp.formName}</td>
-                    <td className="px-5 py-3 font-mono text-slate-600">{formatDate(insp.submittedAt)}</td>
-                    <td className="px-5 py-3">
-                      <span className={insp.failedCount > 0 ? 'font-semibold text-red-700' : 'font-medium text-emerald-700'}>
-                        {insp.status}
-                      </span>{' '}
-                      <span className="text-slate-500">
-                        ({insp.passedCount} pasan · {insp.failedCount} fallan)
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-right font-mono tabular-nums text-slate-900">
-                      {formatDistance(insp.odometerKm, state.settings.distanceUnit)}
-                    </td>
+            <TableViewport label="Historial de inspecciones">
+              <table className="vektor-data-table" style={{ minWidth: 665 }} aria-label="Historial de inspecciones">
+                <colgroup>
+                  <col style={{ width: 100 }} />
+                  <col />
+                  <col style={{ width: 110 }} />
+                  <col style={{ width: 120 }} />
+                  <col style={{ width: 105 }} />
+                </colgroup>
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                    <th scope="col" className="px-5 py-2.5 font-medium">Folio</th>
+                    <th scope="col" className="px-5 py-2.5 font-medium">Formulario</th>
+                    <th scope="col" className="px-5 py-2.5 font-medium">Fecha</th>
+                    <th scope="col" className="px-5 py-2.5 font-medium">Resultado</th>
+                    <th scope="col" className="px-5 py-2.5 text-right font-medium">Odómetro</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {vehicleInspections.map((insp) => (
+                    <tr key={insp.id}>
+                      <td className="px-5 py-3 font-mono font-semibold text-slate-900">{insp.code}</td>
+                      <td className="px-5 py-3 text-slate-700">{insp.formName}</td>
+                      <td className="px-5 py-3 font-mono text-slate-600">{formatDate(insp.submittedAt)}</td>
+                      <td className="px-5 py-3">
+                        <span className={insp.failedCount > 0 ? 'font-semibold text-red-700' : 'font-medium text-emerald-700'}>
+                          {insp.status}
+                        </span>{' '}
+                        <span className="text-slate-500">
+                          ({insp.passedCount} pasan · {insp.failedCount} fallan)
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-right font-mono tabular-nums text-slate-900">
+                        {formatDistance(insp.odometerKm, state.settings.distanceUnit)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableViewport>
           )}
         </section>
       )}
@@ -521,7 +540,7 @@ export const VehicleDetailView: React.FC<VehicleDetailViewProps> = ({
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className={reminderStatusTextClass(computed.status)}>{computed.status}</div>
+                      <div className={`vektor-status ${reminderStatusTextClass(computed.status)}`}>{computed.status}</div>
                       <div className="font-mono tabular-nums text-slate-600">
                         Próx: {formatDistance(rem.nextDueKm, state.settings.distanceUnit)} · {formatDate(rem.nextDueDate)}
                       </div>
@@ -548,39 +567,48 @@ export const VehicleDetailView: React.FC<VehicleDetailViewProps> = ({
           </div>
           {vehicleFuels.length === 0 ? (
             <div className="px-5 py-10 text-center text-xs text-slate-500">
-              Sin registros de combustible para esta unidad.
+              Este equipo no tiene cargas registradas.
             </div>
           ) : (
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                  <th className="px-5 py-2.5 font-medium">Fecha</th>
-                  <th className="px-5 py-2.5 text-right font-medium">Odómetro</th>
-                  <th className="px-5 py-2.5 text-right font-medium">Volumen</th>
-                  <th className="px-5 py-2.5 text-right font-medium">Rendimiento</th>
-                  <th className="px-5 py-2.5 text-right font-medium">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {vehicleFuels.map((fl) => (
-                  <tr key={fl.id}>
-                    <td className="px-5 py-3 font-mono text-slate-700">{formatDate(fl.date)}</td>
-                    <td className="px-5 py-3 text-right font-mono tabular-nums text-slate-900">
-                      {formatDistance(fl.odometerKm, state.settings.distanceUnit)}
-                    </td>
-                    <td className="px-5 py-3 text-right font-mono tabular-nums text-slate-700">
-                      {formatVolume(fl.liters, state.settings.volumeUnit)}
-                    </td>
-                    <td className="px-5 py-3 text-right font-mono tabular-nums text-slate-800">
-                      {formatEfficiency(fl.kmPerLiter, state.settings)}
-                    </td>
-                    <td className="px-5 py-3 text-right font-mono font-medium tabular-nums text-slate-900">
-                      {formatCurrency(fl.totalCost, state.settings.currency)}
-                    </td>
+            <TableViewport label="Historial de combustible">
+              <table className="vektor-data-table" style={{ minWidth: 530 }} aria-label="Historial de combustible">
+                <colgroup>
+                  <col style={{ width: 110 }} />
+                  <col style={{ width: 105 }} />
+                  <col style={{ width: 95 }} />
+                  <col style={{ width: 105 }} />
+                  <col />
+                </colgroup>
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                    <th scope="col" className="px-5 py-2.5 font-medium">Fecha</th>
+                    <th scope="col" className="px-5 py-2.5 text-right font-medium">Odómetro</th>
+                    <th scope="col" className="px-5 py-2.5 text-right font-medium">Volumen</th>
+                    <th scope="col" className="px-5 py-2.5 text-right font-medium">Rendimiento</th>
+                    <th scope="col" className="px-5 py-2.5 text-right font-medium">Total</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {vehicleFuels.map((fl) => (
+                    <tr key={fl.id}>
+                      <td className="px-5 py-3 font-mono text-slate-700">{formatDate(fl.date)}</td>
+                      <td className="px-5 py-3 text-right font-mono tabular-nums text-slate-900">
+                        {formatDistance(fl.odometerKm, state.settings.distanceUnit)}
+                      </td>
+                      <td className="px-5 py-3 text-right font-mono tabular-nums text-slate-700">
+                        {formatVolume(fl.liters, state.settings.volumeUnit)}
+                      </td>
+                      <td className="px-5 py-3 text-right font-mono tabular-nums text-slate-800">
+                        {formatEfficiency(fl.kmPerLiter, state.settings)}
+                      </td>
+                      <td className="px-5 py-3 text-right font-mono font-medium tabular-nums text-slate-900">
+                        {formatCurrency(fl.totalCost, state.settings.currency)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableViewport>
           )}
         </section>
       )}
@@ -603,49 +631,59 @@ export const VehicleDetailView: React.FC<VehicleDetailViewProps> = ({
               + Nueva lectura
             </button>
           </div>
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                <th className="px-5 py-2.5 font-medium">Fecha</th>
-                <th className="px-5 py-2.5 text-right font-medium">Horómetro</th>
-                <th className="px-5 py-2.5 text-right font-medium">Odómetro</th>
-                <th className="px-5 py-2.5 font-medium">Origen</th>
-                <th className="px-5 py-2.5 font-medium">Registrado por</th>
-                <th className="px-5 py-2.5 text-right font-medium">Estado</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {vehicleMeters.map((mr) => (
-                <tr key={mr.id} className={mr.voided ? 'bg-slate-50/60 text-slate-400 line-through' : ''}>
-                  <td className="px-5 py-3 font-mono">{formatDate(mr.date)}</td>
-                  <td className="px-5 py-3 text-right font-mono font-medium tabular-nums text-slate-900">
-                    {typeof mr.valueHrs === 'number' && mr.valueHrs > 0 ? formatHours(mr.valueHrs) : '—'}
-                  </td>
-                  <td className="px-5 py-3 text-right font-mono tabular-nums text-slate-700">
-                    {mr.valueKm > 0 ? formatDistance(mr.valueKm, state.settings.distanceUnit) : '—'}
-                  </td>
-                  <td className="px-5 py-3">
-                    {mr.source}
-                    {mr.referenceId ? ` · ${mr.referenceId}` : ''}
-                  </td>
-                  <td className="px-5 py-3">{mr.recordedBy}</td>
-                  <td className="px-5 py-3 text-right">
-                    {can('vehicle:edit') ? (
-                      <button
-                        type="button"
-                        onClick={() => toggleVoidMeterReading(mr.id)}
-                        className="text-xs font-medium text-slate-600 hover:text-slate-900"
-                      >
-                        {mr.voided ? 'Restaurar' : 'Anular'}
-                      </button>
-                    ) : (
-                      <span>{mr.voided ? 'Anulada' : 'Vigente'}</span>
-                    )}
-                  </td>
+          <TableViewport label="Lecturas de medidor">
+            <table className="vektor-data-table" style={{ minWidth: 665 }} aria-label="Lecturas de medidor">
+              <colgroup>
+                <col style={{ width: 105 }} />
+                <col style={{ width: 90 }} />
+                <col style={{ width: 90 }} />
+                <col />
+                <col style={{ width: 135 }} />
+                <col style={{ width: 100 }} />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                  <th scope="col" className="px-5 py-2.5 font-medium">Fecha</th>
+                  <th scope="col" className="px-5 py-2.5 text-right font-medium">Horómetro</th>
+                  <th scope="col" className="px-5 py-2.5 text-right font-medium">Odómetro</th>
+                  <th scope="col" className="px-5 py-2.5 font-medium">Origen</th>
+                  <th scope="col" className="px-5 py-2.5 font-medium">Registrado por</th>
+                  <th scope="col" className="px-5 py-2.5 text-right font-medium">Estado</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {vehicleMeters.map((mr) => (
+                  <tr key={mr.id} className={mr.voided ? 'bg-slate-50/60 text-slate-400 line-through' : ''}>
+                    <td className="px-5 py-3 font-mono">{formatDate(mr.date)}</td>
+                    <td className="px-5 py-3 text-right font-mono font-medium tabular-nums text-slate-900">
+                      {typeof mr.valueHrs === 'number' && mr.valueHrs > 0 ? formatHours(mr.valueHrs) : '—'}
+                    </td>
+                    <td className="px-5 py-3 text-right font-mono tabular-nums text-slate-700">
+                      {mr.valueKm > 0 ? formatDistance(mr.valueKm, state.settings.distanceUnit) : '—'}
+                    </td>
+                    <td className="px-5 py-3">
+                      {mr.source}
+                      {mr.referenceId ? ` · ${mr.referenceId}` : ''}
+                    </td>
+                    <td className="px-5 py-3">{mr.recordedBy}</td>
+                    <td className="px-5 py-3 text-right">
+                      {can('vehicle:edit') ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleVoidMeterReading(mr.id)}
+                          className="text-xs font-medium text-slate-600 hover:text-slate-900"
+                        >
+                          {mr.voided ? 'Restaurar' : 'Anular'}
+                        </button>
+                      ) : (
+                        <span>{mr.voided ? 'Anulada' : 'Vigente'}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableViewport>
         </section>
       )}
 

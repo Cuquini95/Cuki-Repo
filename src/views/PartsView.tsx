@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { ArrowDownUp, Plus, Search } from 'lucide-react';
+import { TableViewport } from '../components/TableViewport';
 import { Modal } from '../components/Modal';
 import { useFleet } from '../store/FleetContext';
 import { Part } from '../types/fleet';
@@ -96,9 +97,9 @@ export const PartsView: React.FC<{ initialQuery?: string }> = ({ initialQuery })
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">Repuestos e Inventario</h1>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">Inventario</h1>
           <p className="mt-0.5 text-sm text-slate-500">
-            Control de existencias, punto de reorden, valuación y kardex vinculado automáticamente a Órdenes de Trabajo.
+            Existencias, reposición y movimientos de repuestos.
           </p>
         </div>
         <button
@@ -139,10 +140,11 @@ export const PartsView: React.FC<{ initialQuery?: string }> = ({ initialQuery })
 
       {/* Tabs + Search */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-1 rounded-md border border-slate-200 bg-slate-100/80 p-1 w-fit">
+        <div className="vektor-tabs" role="group" aria-label="Vistas disponibles">
           <button
             type="button"
             onClick={() => setSubTab('catalog')}
+            aria-pressed={subTab === 'catalog'}
             className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
               subTab === 'catalog' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
@@ -152,6 +154,7 @@ export const PartsView: React.FC<{ initialQuery?: string }> = ({ initialQuery })
           <button
             type="button"
             onClick={() => setSubTab('movements')}
+            aria-pressed={subTab === 'movements'}
             className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
               subTab === 'movements' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
@@ -189,122 +192,143 @@ export const PartsView: React.FC<{ initialQuery?: string }> = ({ initialQuery })
       </div>
 
       {subTab === 'catalog' ? (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                <th className="px-4 py-2.5 font-medium">SKU y Descripción</th>
-                <th className="px-4 py-2.5 font-medium">Categoría / Ubicación</th>
-                <th className="px-4 py-2.5 text-right font-medium">Existencia</th>
-                <th className="px-4 py-2.5 text-right font-medium">Reorden</th>
-                <th className="px-4 py-2.5 text-right font-medium">Costo Unit.</th>
-                <th className="px-4 py-2.5 text-right font-medium">Valuación</th>
-                <th className="px-4 py-2.5 text-right font-medium">Acción</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredParts.map((part) => {
-                const low = part.quantityOnHand <= part.reorderPoint;
-                return (
-                  <tr key={part.id} className="hover:bg-slate-50/70">
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-slate-900">{part.name}</div>
-                      <div className="font-mono text-[11px] text-slate-500">
-                        {part.sku} · {part.manufacturer}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="text-slate-800">{part.category}</div>
-                      <div className="text-[11px] text-slate-500">{part.location}</div>
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
-                      <div className={low ? 'font-semibold text-red-700' : 'font-medium text-slate-900'}>
-                        {part.quantityOnHand} uds
-                      </div>
-                      {low && (
-                        <div className="text-[11px] font-medium text-red-700">
-                          {part.quantityOnHand === 0 ? 'Agotado' : 'Stock bajo'}
+        <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <TableViewport label="Existencias de repuestos">
+            <table className="vektor-data-table" style={{ minWidth: 915 }} aria-label="Existencias de repuestos">
+              <colgroup>
+                <col />
+                <col style={{ width: 175 }} />
+                <col style={{ width: 95 }} />
+                <col style={{ width: 95 }} />
+                <col style={{ width: 105 }} />
+                <col style={{ width: 105 }} />
+                <col style={{ width: 110 }} />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                  <th scope="col" className="px-4 py-2.5 font-medium">Repuesto y SKU</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Categoría y ubicación</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Existencia</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Punto de reposición</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Costo unitario</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Valor en stock</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Acción</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredParts.map((part) => {
+                  const low = part.quantityOnHand <= part.reorderPoint;
+                  return (
+                    <tr key={part.id} className="hover:bg-slate-50/70">
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-slate-900">{part.name}</div>
+                        <div className="font-mono text-[11px] text-slate-500">
+                          {part.sku} · {part.manufacturer}
                         </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-600">
-                      {part.reorderPoint}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-700">
-                      {formatCurrency(part.unitCost, state.settings.currency)}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono font-medium tabular-nums text-slate-900">
-                      {formatCurrency(part.quantityOnHand * part.unitCost, state.settings.currency)}
-                    </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <button
-                        type="button"
-                        disabled={!can('parts:manage')}
-                        onClick={() => {
-                          setAdjustTarget(part);
-                          setAdjustDelta(5);
-                          setAdjustReason('Recepción de compra');
-                          setAdjustError('');
-                        }}
-                        className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
-                      >
-                        <ArrowDownUp className="h-3 w-3" />
-                        Ajustar Stock
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-slate-800">{part.category}</div>
+                        <div className="text-[11px] text-slate-500">{part.location}</div>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
+                        <div className={low ? 'font-semibold text-red-700' : 'font-medium text-slate-900'}>
+                          {part.quantityOnHand} uds
+                        </div>
+                        {low && (
+                          <div className="text-[11px] font-medium text-red-700">
+                            {part.quantityOnHand === 0 ? 'Agotado' : 'Stock bajo'}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-600">
+                        {part.reorderPoint}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-700">
+                        {formatCurrency(part.unitCost, state.settings.currency)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono font-medium tabular-nums text-slate-900">
+                        {formatCurrency(part.quantityOnHand * part.unitCost, state.settings.currency)}
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <button
+                          type="button"
+                          disabled={!can('parts:manage')}
+                          onClick={() => {
+                            setAdjustTarget(part);
+                            setAdjustDelta(5);
+                            setAdjustReason('Recepción de compra');
+                            setAdjustError('');
+                          }}
+                          className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                        >
+                          <ArrowDownUp className="h-3 w-3" />
+                          Ajustar Stock
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </TableViewport>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                <th className="px-4 py-2.5 font-medium">Fecha</th>
-                <th className="px-4 py-2.5 font-medium">Repuesto</th>
-                <th className="px-4 py-2.5 font-medium">Motivo y Referencia</th>
-                <th className="px-4 py-2.5 text-right font-medium">Movimiento</th>
-                <th className="px-4 py-2.5 text-right font-medium">Saldo Resultante</th>
-                <th className="px-4 py-2.5 font-medium">Responsable</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {state.stockMovements.map((mv) => {
-                const part = state.parts.find((p) => p.id === mv.partId);
-                return (
-                  <tr key={mv.id}>
-                    <td className="px-4 py-3 font-mono text-slate-600 whitespace-nowrap">
-                      {formatDate(mv.date)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900">{part?.name || mv.partId}</div>
-                      <div className="font-mono text-[11px] text-slate-500">{part?.sku}</div>
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">
-                      {mv.reason}
-                      {mv.referenceCode ? (
-                        <span className="ml-1.5 font-mono text-slate-500">· {mv.referenceCode}</span>
-                      ) : null}
-                    </td>
-                    <td
-                      className={`px-4 py-3 text-right font-mono font-semibold tabular-nums ${
-                        mv.delta < 0 ? 'text-red-700' : 'text-emerald-700'
-                      }`}
-                    >
-                      {mv.delta > 0 ? `+${mv.delta}` : mv.delta}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-900">
-                      {mv.resultingQty} uds
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{mv.performedBy}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <TableViewport label="Movimientos de inventario">
+            <table className="vektor-data-table" style={{ minWidth: 840 }} aria-label="Movimientos de inventario">
+              <colgroup>
+                <col style={{ width: 105 }} />
+                <col style={{ width: 190 }} />
+                <col />
+                <col style={{ width: 100 }} />
+                <col style={{ width: 105 }} />
+                <col style={{ width: 125 }} />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                  <th scope="col" className="px-4 py-2.5 font-medium">Fecha</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Repuesto</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Motivo y Referencia</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Movimiento</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Saldo final</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Responsable</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {state.stockMovements.map((mv) => {
+                  const part = state.parts.find((p) => p.id === mv.partId);
+                  return (
+                    <tr key={mv.id}>
+                      <td className="px-4 py-3 font-mono text-slate-600 whitespace-nowrap">
+                        {formatDate(mv.date)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-slate-900">{part?.name || mv.partId}</div>
+                        <div className="font-mono text-[11px] text-slate-500">{part?.sku}</div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-700">
+                        {mv.reason}
+                        {mv.referenceCode ? (
+                          <span className="ml-1.5 font-mono text-slate-500">· {mv.referenceCode}</span>
+                        ) : null}
+                      </td>
+                      <td
+                        className={`px-4 py-3 text-right font-mono font-semibold tabular-nums ${
+                          mv.delta < 0 ? 'text-red-700' : 'text-emerald-700'
+                        }`}
+                      >
+                        {mv.delta > 0 ? `+${mv.delta}` : mv.delta}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-900">
+                        {mv.resultingQty} uds
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{mv.performedBy}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </TableViewport>
         </div>
       )}
 

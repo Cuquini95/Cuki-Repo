@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ClipboardCheck, Plus } from 'lucide-react';
+import { TableViewport } from '../components/TableViewport';
 import { Modal } from '../components/Modal';
 import { useFleet } from '../store/FleetContext';
 import { InspectionItemResult, InspectionResponseItem, RouteState } from '../types/fleet';
@@ -140,9 +141,9 @@ export const InspectionsView: React.FC<InspectionsViewProps> = ({ onNavigate }) 
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">Inspecciones DVIR</h1>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">Inspecciones</h1>
           <p className="mt-0.5 text-sm text-slate-500">
-            Reportes de inspección vehicular. Todo ítem marcado como Falla genera automáticamente una incidencia vinculada.
+            Las fallas registradas generan una incidencia vinculada al equipo.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -164,105 +165,119 @@ export const InspectionsView: React.FC<InspectionsViewProps> = ({ onNavigate }) 
             className="inline-flex h-9 items-center gap-1.5 rounded-md bg-blue-700 px-3.5 text-xs font-medium text-white hover:bg-blue-800 disabled:bg-slate-300 whitespace-nowrap"
           >
             <ClipboardCheck className="h-4 w-4" />
-            Ejecutar Inspección
+            Nueva inspección
           </button>
         </div>
       </div>
 
       {/* Subtabs */}
-      <div className="flex items-center gap-1 rounded-md border border-slate-200 bg-slate-100/80 p-1 w-fit">
+      <div className="vektor-tabs" role="group" aria-label="Vistas disponibles">
         <button
           type="button"
           onClick={() => setSubTab('submissions')}
+          aria-pressed={subTab === 'submissions'}
           className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
             subTab === 'submissions' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          Envíos Registrados <span className="ml-1 font-mono text-[11px] text-slate-400">{state.inspections.length}</span>
+          Registradas <span className="ml-1 font-mono text-[11px] text-slate-400">{state.inspections.length}</span>
         </button>
         <button
           type="button"
           onClick={() => setSubTab('forms')}
+          aria-pressed={subTab === 'forms'}
           className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
             subTab === 'forms' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
           }`}
         >
-          Formularios DVIR <span className="ml-1 font-mono text-[11px] text-slate-400">{state.inspectionForms.length}</span>
+          Formularios <span className="ml-1 font-mono text-[11px] text-slate-400">{state.inspectionForms.length}</span>
         </button>
       </div>
 
       {subTab === 'submissions' ? (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                <th className="px-4 py-2.5 font-medium">Folio</th>
-                <th className="px-4 py-2.5 font-medium">Vehículo</th>
-                <th className="px-4 py-2.5 font-medium">Formulario</th>
-                <th className="px-4 py-2.5 font-medium">Operador</th>
-                <th className="px-4 py-2.5 font-medium">Fecha</th>
-                <th className="px-4 py-2.5 text-right font-medium">Horóm. / Odóm.</th>
-                <th className="px-4 py-2.5 font-medium">Resultado</th>
-                <th className="px-4 py-2.5 text-right font-medium">Detalle</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {state.inspections.map((insp) => {
-                const veh = state.vehicles.find((v) => v.id === insp.vehicleId);
-                const op = state.contacts.find((c) => c.id === insp.operatorId);
-                return (
-                  <tr key={insp.id} className="hover:bg-slate-50/70">
-                    <td className="px-4 py-3 font-mono font-semibold text-slate-900">{insp.code}</td>
-                    <td className="px-4 py-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onNavigate({
-                            section: 'vehicle-detail',
-                            selectedVehicleId: insp.vehicleId,
-                            selectedVehicleTab: 'inspecciones',
-                          })
-                        }
-                        className="font-medium text-blue-700 hover:underline"
-                      >
-                        {veh ? `${veh.code} · ${veh.name}` : insp.vehicleId}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">{insp.formName}</td>
-                    <td className="px-4 py-3 text-slate-700">{op?.name || '—'}</td>
-                    <td className="px-4 py-3 font-mono text-slate-600">{formatDate(insp.submittedAt)}</td>
-                    <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-900 whitespace-nowrap">
-                      {typeof insp.horometerHrs === 'number' && insp.horometerHrs > 0 && (
-                        <div>{formatHours(insp.horometerHrs)}</div>
-                      )}
-                      {insp.odometerKm > 0 && (
-                        <div className="text-[11px] text-slate-500">
-                          {formatDistance(insp.odometerKm, state.settings.distanceUnit)}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={insp.failedCount > 0 ? 'font-semibold text-red-700' : 'font-medium text-emerald-700'}>
-                        {insp.status}
-                      </span>{' '}
-                      <span className="text-slate-500">
-                        · {insp.passedCount} OK / {insp.failedCount} fallas
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedSubmissionId(insp.id)}
-                        className="font-medium text-blue-700 hover:text-blue-800"
-                      >
-                        Ver ítems
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <TableViewport label="Inspecciones registradas">
+            <table className="vektor-data-table vektor-mobile-cards" style={{ minWidth: 1015 }} aria-label="Inspecciones registradas" role="table">
+              <colgroup>
+                <col style={{ width: 100 }} />
+                <col style={{ width: 180 }} />
+                <col />
+                <col style={{ width: 120 }} />
+                <col style={{ width: 105 }} />
+                <col style={{ width: 105 }} />
+                <col style={{ width: 125 }} />
+                <col style={{ width: 90 }} />
+              </colgroup>
+              <thead role="rowgroup">
+                <tr role="row" className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 font-medium">Folio</th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 font-medium">Equipo</th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 font-medium">Formulario</th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 font-medium">Operador</th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 font-medium">Fecha</th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 text-right font-medium">Medidores</th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 font-medium">Resultado</th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 text-right font-medium">Detalle</th>
+                </tr>
+              </thead>
+              <tbody role="rowgroup" className="divide-y divide-slate-100">
+                {state.inspections.map((insp) => {
+                  const veh = state.vehicles.find((v) => v.id === insp.vehicleId);
+                  const op = state.contacts.find((c) => c.id === insp.operatorId);
+                  return (
+                    <tr role="row" key={insp.id} className="hover:bg-slate-50/70">
+                      <td role="cell" data-label="Inspección" className="px-4 py-3 font-mono font-semibold text-slate-900">{insp.code}</td>
+                      <td role="cell" data-label="Equipo" data-card-wide className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            onNavigate({
+                              section: 'vehicle-detail',
+                              selectedVehicleId: insp.vehicleId,
+                              selectedVehicleTab: 'inspecciones',
+                            })
+                          }
+                          className="font-medium text-blue-700 hover:underline"
+                        >
+                          {veh ? `${veh.code} · ${veh.name}` : insp.vehicleId}
+                        </button>
+                      </td>
+                      <td role="cell" data-label="Formulario" data-card-wide className="px-4 py-3 text-slate-700">{insp.formName}</td>
+                      <td role="cell" data-label="Operador" className="px-4 py-3 text-slate-700">{op?.name || '—'}</td>
+                      <td role="cell" data-label="Fecha" className="px-4 py-3 font-mono text-slate-600">{formatDate(insp.submittedAt)}</td>
+                      <td role="cell" data-label="Medidores" className="px-4 py-3 text-right font-mono tabular-nums text-slate-900 whitespace-nowrap">
+                        {typeof insp.horometerHrs === 'number' && insp.horometerHrs > 0 && (
+                          <div>{formatHours(insp.horometerHrs)}</div>
+                        )}
+                        {insp.odometerKm > 0 && (
+                          <div className="text-[11px] text-slate-500">
+                            {formatDistance(insp.odometerKm, state.settings.distanceUnit)}
+                          </div>
+                        )}
+                      </td>
+                      <td role="cell" data-label="Resultado" className="px-4 py-3">
+                        <span className={insp.failedCount > 0 ? 'font-semibold text-red-700' : 'font-medium text-emerald-700'}>
+                          {insp.status}
+                        </span>{' '}
+                        <span className="text-slate-500">
+                          · {insp.passedCount} OK / {insp.failedCount} fallas
+                        </span>
+                      </td>
+                      <td role="cell" data-card-wide className="px-4 py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedSubmissionId(insp.id)}
+                          className="font-medium text-blue-700 hover:text-blue-800"
+                        >
+                          Ver inspección
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </TableViewport>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -297,7 +312,7 @@ export const InspectionsView: React.FC<InspectionsViewProps> = ({ onNavigate }) 
       <Modal
         open={runOpen}
         onClose={() => setRunOpen(false)}
-        title="Ejecutar Inspección Vehicular (DVIR)"
+        title="Nueva inspección Vehicular (DVIR)"
         subtitle="Cada punto marcado como Falla creará automáticamente una incidencia y actualizará el odómetro."
         footer={
           <>

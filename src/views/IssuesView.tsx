@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Plus, Search, Wrench } from 'lucide-react';
+import { TableViewport } from '../components/TableViewport';
 import { Modal } from '../components/Modal';
 import { useFleet } from '../store/FleetContext';
 import { FailureCategory, Issue, IssuePriority, IssueStatus, RouteState } from '../types/fleet';
@@ -121,9 +122,9 @@ export const IssuesView: React.FC<IssuesViewProps> = ({ onNavigate, initialQuery
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">Incidencias</h1>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">Fallas</h1>
           <p className="mt-0.5 text-sm text-slate-500">
-            Registro de fallas mecánicas y defectos DVIR con conversión directa a Orden de Trabajo.
+            Fallas reportadas en campo, taller e inspecciones.
           </p>
         </div>
         <button
@@ -139,7 +140,7 @@ export const IssuesView: React.FC<IssuesViewProps> = ({ onNavigate, initialQuery
 
       {/* Filters */}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-slate-100/80 p-1">
+        <div className="vektor-tabs" role="group" aria-label="Vistas disponibles">
           {STATUS_FILTERS.map((st) => {
             const count =
               st === 'Todas'
@@ -150,6 +151,7 @@ export const IssuesView: React.FC<IssuesViewProps> = ({ onNavigate, initialQuery
                 key={st}
                 type="button"
                 onClick={() => setStatusFilter(st)}
+                aria-pressed={statusFilter === st}
                 className={`rounded px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap ${
                   statusFilter === st
                     ? 'bg-white text-slate-900 shadow-xs'
@@ -189,127 +191,137 @@ export const IssuesView: React.FC<IssuesViewProps> = ({ onNavigate, initialQuery
       </div>
 
       {/* Issues Table */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
         {filtered.length === 0 ? (
           <div className="px-6 py-12 text-center text-xs text-slate-500">
             No hay incidencias que coincidan con el filtro actual.
           </div>
         ) : (
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                <th className="px-4 py-2.5 font-medium">Folio y Descripción</th>
-                <th className="px-4 py-2.5 font-medium">Vehículo</th>
-                <th className="px-4 py-2.5 font-medium">Prioridad</th>
-                <th className="px-4 py-2.5 font-medium">Estado</th>
-                <th className="px-4 py-2.5 font-medium">Origen</th>
-                <th className="px-4 py-2.5 text-right font-medium">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.map((iss) => {
-                const veh = state.vehicles.find((v) => v.id === iss.vehicleId);
-                const linkedWo = state.workOrders.find((w) => w.id === iss.workOrderId);
-                return (
-                  <tr key={iss.id} className="hover:bg-slate-50/70">
-                    <td className="max-w-md px-4 py-3">
-                      <div className="font-semibold text-slate-900">
-                        <span className="font-mono text-slate-500">{iss.code}</span> · {iss.title}
-                      </div>
-                      <div className="mt-0.5 text-[11px] text-slate-500">
-                        {iss.description}
-                        {iss.resolutionNote ? ` · Nota cierre: ${iss.resolutionNote}` : ''}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onNavigate({
-                            section: 'vehicle-detail',
-                            selectedVehicleId: iss.vehicleId,
-                            selectedVehicleTab: 'incidencias',
-                          })
-                        }
-                        className="font-medium text-blue-700 hover:underline"
-                      >
-                        {veh ? `${veh.code} · ${veh.make}` : iss.vehicleId}
-                      </button>
-                    </td>
-                    <td className={`px-4 py-3 whitespace-nowrap ${issuePriorityTextClass(iss.priority)}`}>
-                      {iss.priority}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className={issueStatusTextClass(iss.status)}>{iss.status}</div>
-                      {linkedWo && (
+          <TableViewport label="Fallas registradas">
+            <table className="vektor-data-table" style={{ minWidth: 825 }} aria-label="Fallas registradas">
+              <colgroup>
+                <col />
+                <col style={{ width: 155 }} />
+                <col style={{ width: 85 }} />
+                <col style={{ width: 100 }} />
+                <col style={{ width: 125 }} />
+                <col style={{ width: 115 }} />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                  <th scope="col" className="px-4 py-2.5 font-medium">Falla</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Equipo</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Prioridad</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Estado</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Origen</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map((iss) => {
+                  const veh = state.vehicles.find((v) => v.id === iss.vehicleId);
+                  const linkedWo = state.workOrders.find((w) => w.id === iss.workOrderId);
+                  return (
+                    <tr key={iss.id} className="hover:bg-slate-50/70">
+                      <td className="max-w-md px-4 py-3">
+                        <div className="font-semibold text-slate-900">
+                          <span className="font-mono text-slate-500">{iss.code}</span> · {iss.title}
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-slate-500">
+                          {iss.description}
+                          {iss.resolutionNote ? ` · Nota cierre: ${iss.resolutionNote}` : ''}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <button
                           type="button"
                           onClick={() =>
-                            onNavigate({ section: 'work-orders', selectedWorkOrderId: linkedWo.id })
+                            onNavigate({
+                              section: 'vehicle-detail',
+                              selectedVehicleId: iss.vehicleId,
+                              selectedVehicleTab: 'incidencias',
+                            })
                           }
-                          className="font-mono text-[11px] text-blue-700 hover:underline"
+                          className="font-medium text-blue-700 hover:underline"
                         >
-                          {linkedWo.code}
+                          {veh ? `${veh.code} · ${veh.make}` : iss.vehicleId}
                         </button>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
-                      <div>{iss.source}</div>
-                      <div className="font-mono text-[11px] text-slate-400">
-                        {formatDate(iss.reportedAt)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      <div className="inline-flex items-center gap-2">
-                        {iss.status === 'Abierta' && (
-                          <>
-                            <button
-                              type="button"
-                              disabled={!can('workorder:manage')}
-                              onClick={() => handleConvertToWorkOrder(iss)}
-                              className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
-                            >
-                              <Wrench className="h-3 w-3" />
-                              Crear OT
-                            </button>
-                            <button
-                              type="button"
-                              disabled={!can('issue:resolve')}
-                              onClick={() => {
-                                setResolveTarget(iss);
-                                setResolutionNote('');
-                              }}
-                              className="rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
-                            >
-                              Resolver
-                            </button>
-                          </>
-                        )}
-                        {iss.status === 'Resuelta' && can('issue:resolve') && (
+                      </td>
+                      <td className={`px-4 py-3 whitespace-nowrap ${issuePriorityTextClass(iss.priority)}`}>
+                        {iss.priority}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className={`vektor-status ${issueStatusTextClass(iss.status)}`}>{iss.status}</div>
+                        {linkedWo && (
                           <button
                             type="button"
-                            onClick={() => updateIssueStatus(iss.id, 'Cerrada')}
-                            className="text-xs font-medium text-slate-600 hover:text-slate-900"
+                            onClick={() =>
+                              onNavigate({ section: 'work-orders', selectedWorkOrderId: linkedWo.id })
+                            }
+                            className="font-mono text-[11px] text-blue-700 hover:underline"
                           >
-                            Cerrar
+                            {linkedWo.code}
                           </button>
                         )}
-                        {(iss.status === 'Resuelta' || iss.status === 'Cerrada') && can('issue:resolve') && (
-                          <button
-                            type="button"
-                            onClick={() => updateIssueStatus(iss.id, 'Abierta')}
-                            className="text-xs font-medium text-blue-700 hover:underline"
-                          >
-                            Reabrir
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                        <div>{iss.source}</div>
+                        <div className="font-mono text-[11px] text-slate-400">
+                          {formatDate(iss.reportedAt)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-2">
+                          {iss.status === 'Abierta' && (
+                            <>
+                              <button
+                                type="button"
+                                disabled={!can('workorder:manage')}
+                                onClick={() => handleConvertToWorkOrder(iss)}
+                                className="inline-flex items-center gap-1 rounded border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-40"
+                              >
+                                <Wrench className="h-3 w-3" />
+                                Crear OT
+                              </button>
+                              <button
+                                type="button"
+                                disabled={!can('issue:resolve')}
+                                onClick={() => {
+                                  setResolveTarget(iss);
+                                  setResolutionNote('');
+                                }}
+                                className="rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                              >
+                                Resolver
+                              </button>
+                            </>
+                          )}
+                          {iss.status === 'Resuelta' && can('issue:resolve') && (
+                            <button
+                              type="button"
+                              onClick={() => updateIssueStatus(iss.id, 'Cerrada')}
+                              className="text-xs font-medium text-slate-600 hover:text-slate-900"
+                            >
+                              Cerrar
+                            </button>
+                          )}
+                          {(iss.status === 'Resuelta' || iss.status === 'Cerrada') && can('issue:resolve') && (
+                            <button
+                              type="button"
+                              onClick={() => updateIssueStatus(iss.id, 'Abierta')}
+                              className="text-xs font-medium text-blue-700 hover:underline"
+                            >
+                              Reabrir
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </TableViewport>
         )}
       </div>
 
@@ -317,7 +329,7 @@ export const IssuesView: React.FC<IssuesViewProps> = ({ onNavigate, initialQuery
       <Modal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="Reportar Nueva Incidencia"
+        title="Reportar Reportar falla"
         maxWidthClass="max-w-lg"
         footer={
           <>

@@ -9,6 +9,7 @@ import {
   YAxis,
 } from 'recharts';
 import { Download } from 'lucide-react';
+import { TableViewport } from '../components/TableViewport';
 import { useFleet } from '../store/FleetContext';
 import { RouteState } from '../types/fleet';
 import {
@@ -61,7 +62,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onNavigate }) => {
   const handleExportTco = () => {
     exportRowsToCsv(
       'vektor_reporte_tco.csv',
-      ['Código', 'Vehículo', 'Grupo', 'Odómetro (km)', 'Mantenimiento', 'Combustible', 'Total Operativo', 'Costo/km', 'Rendimiento (km/L)'],
+      ['Código', 'Vehículo', 'Grupo', 'Odómetro (km)', 'Mantenimiento', 'Combustible', 'Total registrado', 'Costo/km', 'Rendimiento (km/L)'],
       tcoRows.map((r) => [
         r.veh.code,
         r.veh.name,
@@ -80,9 +81,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onNavigate }) => {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">Reportes y Analítica TCO</h1>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">Costos de flota</h1>
           <p className="mt-0.5 text-sm text-slate-500">
-            Costo Total de Propiedad por vehículo, eficiencia de combustible, tasa de fallas DVIR y valuación de inventario.
+            Costos de mantenimiento y combustible por equipo.
           </p>
         </div>
         <button
@@ -136,7 +137,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onNavigate }) => {
       {/* Stacked Cost Chart */}
       <section className="rounded-lg border border-slate-200 bg-white p-5">
         <h2 className="text-sm font-semibold text-slate-900">
-          Composición de Costo Operativo por Unidad ({state.settings.currency})
+          Costo registrado por equipo ({state.settings.currency})
         </h2>
         <div className="mt-4 h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -163,64 +164,76 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ onNavigate }) => {
       </section>
 
       {/* TCO Table */}
-      <section className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
         <div className="border-b border-slate-200 px-5 py-3.5">
           <h2 className="text-sm font-semibold text-slate-900">Desglose TCO por Vehículo</h2>
         </div>
-        <table className="w-full text-left text-xs">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-              <th className="px-4 py-2.5 font-medium">Vehículo</th>
-              <th className="px-4 py-2.5 font-medium">Grupo</th>
-              <th className="px-4 py-2.5 text-right font-medium">Odómetro</th>
-              <th className="px-4 py-2.5 text-right font-medium">Mantenimiento</th>
-              <th className="px-4 py-2.5 text-right font-medium">Combustible</th>
-              <th className="px-4 py-2.5 text-right font-medium">Total Operativo</th>
-              <th className="px-4 py-2.5 text-right font-medium">Costo / km</th>
-              <th className="px-4 py-2.5 text-right font-medium">Rendimiento</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {tcoRows.map((row) => (
-              <tr key={row.veh.id} className="hover:bg-slate-50/70">
-                <td className="px-4 py-3 whitespace-nowrap">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onNavigate({
-                        section: 'vehicle-detail',
-                        selectedVehicleId: row.veh.id,
-                        selectedVehicleTab: 'resumen',
-                      })
-                    }
-                    className="font-medium text-blue-700 hover:underline"
-                  >
-                    {row.veh.code} · {row.veh.name}
-                  </button>
-                </td>
-                <td className="px-4 py-3 text-slate-600">{row.veh.group}</td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-700">
-                  {formatDistance(row.veh.odometerKm, state.settings.distanceUnit)}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-700">
-                  {formatCurrency(row.maintenanceCost, state.settings.currency)}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-700">
-                  {formatCurrency(row.fuelCost, state.settings.currency)}
-                </td>
-                <td className="px-4 py-3 text-right font-mono font-semibold tabular-nums text-slate-900">
-                  {formatCurrency(row.totalOperatingCost, state.settings.currency)}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-800">
-                  {formatCurrency(row.costPerKm, state.settings.currency)}
-                </td>
-                <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-800">
-                  {formatEfficiency(row.avgKmPerLiter, state.settings)}
-                </td>
+        <TableViewport label="Costos por equipo">
+          <table className="vektor-data-table" style={{ minWidth: 1005 }} aria-label="Costos por equipo">
+            <colgroup>
+              <col />
+              <col style={{ width: 165 }} />
+              <col style={{ width: 105 }} />
+              <col style={{ width: 120 }} />
+              <col style={{ width: 110 }} />
+              <col style={{ width: 120 }} />
+              <col style={{ width: 95 }} />
+              <col style={{ width: 105 }} />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                <th scope="col" className="px-4 py-2.5 font-medium">Equipo</th>
+                <th scope="col" className="px-4 py-2.5 font-medium">Grupo</th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">Odómetro</th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">Mantenimiento</th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">Combustible</th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">Total registrado</th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">Costo por km</th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">Rendimiento</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {tcoRows.map((row) => (
+                <tr key={row.veh.id} className="hover:bg-slate-50/70">
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onNavigate({
+                          section: 'vehicle-detail',
+                          selectedVehicleId: row.veh.id,
+                          selectedVehicleTab: 'resumen',
+                        })
+                      }
+                      className="font-medium text-blue-700 hover:underline"
+                    >
+                      {row.veh.code} · {row.veh.name}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3 text-slate-600">{row.veh.group}</td>
+                  <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-700">
+                    {formatDistance(row.veh.odometerKm, state.settings.distanceUnit)}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-700">
+                    {formatCurrency(row.maintenanceCost, state.settings.currency)}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-700">
+                    {formatCurrency(row.fuelCost, state.settings.currency)}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono font-semibold tabular-nums text-slate-900">
+                    {formatCurrency(row.totalOperatingCost, state.settings.currency)}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-800">
+                    {formatCurrency(row.costPerKm, state.settings.currency)}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-800">
+                    {formatEfficiency(row.avgKmPerLiter, state.settings)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableViewport>
       </section>
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Download, Plus } from 'lucide-react';
+import { TableViewport } from '../components/TableViewport';
 import { Modal } from '../components/Modal';
 import { useFleet } from '../store/FleetContext';
 import { FuelType, RouteState } from '../types/fleet';
@@ -107,7 +108,7 @@ export const FuelView: React.FC<FuelViewProps> = ({ onNavigate }) => {
       'vektor_combustible_panama.csv',
       [
         'Fecha',
-        'Equipo / Unidad',
+        'Equipo',
         'Horómetro (h)',
         'Odómetro (km)',
         'Volumen (L)',
@@ -115,7 +116,7 @@ export const FuelView: React.FC<FuelViewProps> = ({ onNavigate }) => {
         'Total',
         'Rendimiento (km/L)',
         'Consumo (gal/h)',
-        'Costo/km',
+        'Costo por km',
         'Tipo',
       ],
       filtered.map((f) => {
@@ -143,7 +144,7 @@ export const FuelView: React.FC<FuelViewProps> = ({ onNavigate }) => {
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900">Combustible</h1>
           <p className="mt-0.5 text-sm text-slate-500">
-            Registro de cargas, control de rendimiento (km/L), costo por kilómetro y actualización automática de odómetro.
+            Cargas registradas, consumo y costo por kilómetro.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -210,82 +211,94 @@ export const FuelView: React.FC<FuelViewProps> = ({ onNavigate }) => {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-left text-xs">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-              <th className="px-4 py-2.5 font-medium">Fecha</th>
-              <th className="px-4 py-2.5 font-medium">Equipo / Unidad</th>
-              <th className="px-4 py-2.5 font-medium">Distribuidor y Tipo</th>
-              <th className="px-4 py-2.5 text-right font-medium">Medidor (h / km)</th>
-              <th className="px-4 py-2.5 text-right font-medium">Volumen</th>
-              <th className="px-4 py-2.5 text-right font-medium">Rendimiento</th>
-              <th className="px-4 py-2.5 text-right font-medium">Costo/km</th>
-              <th className="px-4 py-2.5 text-right font-medium">Total</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filtered.map((f) => {
-              const veh = state.vehicles.find((v) => v.id === f.vehicleId);
-              const vendor = state.vendors.find((v) => v.id === f.vendorId);
-              return (
-                <tr key={f.id} className="hover:bg-slate-50/70">
-                  <td className="px-4 py-3 font-mono text-slate-600 whitespace-nowrap">
-                    {formatDate(f.date)}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onNavigate({
-                          section: 'vehicle-detail',
-                          selectedVehicleId: f.vehicleId,
-                          selectedVehicleTab: 'combustible',
-                        })
-                      }
-                      className="font-medium text-blue-700 hover:underline"
-                    >
-                      {veh ? `${veh.code} · ${veh.make}` : f.vehicleId}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="text-slate-800">{vendor?.name || 'Despacho en frente'}</div>
-                    <div className="text-[11px] text-slate-500">
-                      {f.fuelType}
-                      {f.partialFill ? ' · Carga parcial' : ''}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-900 whitespace-nowrap">
-                    <div>
-                      {f.horometerHrs && f.horometerHrs > 0
-                        ? formatHours(f.horometerHrs)
-                        : formatDistance(f.odometerKm, state.settings.distanceUnit)}
-                    </div>
-                    {f.horometerHrs && f.horometerHrs > 0 && f.odometerKm > 0 && (
-                      <div className="text-[11px] text-slate-400">
-                        {formatDistance(f.odometerKm, state.settings.distanceUnit)}
+      <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <TableViewport label="Cargas de combustible">
+          <table className="vektor-data-table" style={{ minWidth: 990 }} aria-label="Cargas de combustible">
+            <colgroup>
+              <col style={{ width: 100 }} />
+              <col />
+              <col style={{ width: 185 }} />
+              <col style={{ width: 115 }} />
+              <col style={{ width: 95 }} />
+              <col style={{ width: 105 }} />
+              <col style={{ width: 95 }} />
+              <col style={{ width: 110 }} />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                <th scope="col" className="px-4 py-2.5 font-medium">Fecha</th>
+                <th scope="col" className="px-4 py-2.5 font-medium">Equipo</th>
+                <th scope="col" className="px-4 py-2.5 font-medium">Proveedor y combustible</th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">Horómetro y odómetro</th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">Volumen</th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">Rendimiento</th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">Costo por km</th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">Total</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filtered.map((f) => {
+                const veh = state.vehicles.find((v) => v.id === f.vehicleId);
+                const vendor = state.vendors.find((v) => v.id === f.vendorId);
+                return (
+                  <tr key={f.id} className="hover:bg-slate-50/70">
+                    <td className="px-4 py-3 font-mono text-slate-600 whitespace-nowrap">
+                      {formatDate(f.date)}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onNavigate({
+                            section: 'vehicle-detail',
+                            selectedVehicleId: f.vehicleId,
+                            selectedVehicleTab: 'combustible',
+                          })
+                        }
+                        className="font-medium text-blue-700 hover:underline"
+                      >
+                        {veh ? `${veh.code} · ${veh.make}` : f.vehicleId}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-slate-800">{vendor?.name || 'Despacho en frente'}</div>
+                      <div className="text-[11px] text-slate-500">
+                        {f.fuelType}
+                        {f.partialFill ? ' · Carga parcial' : ''}
                       </div>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-700 whitespace-nowrap">
-                    {formatVolume(f.liters, state.settings.volumeUnit)}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-900 whitespace-nowrap">
-                    {f.galPerHour
-                      ? `${f.galPerHour.toFixed(1)} gal/h`
-                      : formatEfficiency(f.kmPerLiter, state.settings)}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-600 whitespace-nowrap">
-                    {f.costPerKm ? formatCurrency(f.costPerKm, state.settings.currency) : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono font-medium tabular-nums text-slate-900 whitespace-nowrap">
-                    {formatCurrency(f.totalCost, state.settings.currency)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-900 whitespace-nowrap">
+                      <div>
+                        {f.horometerHrs && f.horometerHrs > 0
+                          ? formatHours(f.horometerHrs)
+                          : formatDistance(f.odometerKm, state.settings.distanceUnit)}
+                      </div>
+                      {f.horometerHrs && f.horometerHrs > 0 && f.odometerKm > 0 && (
+                        <div className="text-[11px] text-slate-400">
+                          {formatDistance(f.odometerKm, state.settings.distanceUnit)}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-700 whitespace-nowrap">
+                      {formatVolume(f.liters, state.settings.volumeUnit)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-900 whitespace-nowrap">
+                      {f.galPerHour
+                        ? `${f.galPerHour.toFixed(1)} gal/h`
+                        : formatEfficiency(f.kmPerLiter, state.settings)}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-600 whitespace-nowrap">
+                      {f.costPerKm ? formatCurrency(f.costPerKm, state.settings.currency) : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono font-medium tabular-nums text-slate-900 whitespace-nowrap">
+                      {formatCurrency(f.totalCost, state.settings.currency)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </TableViewport>
       </div>
 
       {/* Add Fuel Modal */}
@@ -321,7 +334,7 @@ export const FuelView: React.FC<FuelViewProps> = ({ onNavigate }) => {
           )}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="block font-medium text-slate-700">Equipo / Unidad *</label>
+              <label className="block font-medium text-slate-700">Equipo *</label>
               <select
                 value={draft.vehicleId}
                 onChange={(e) => handleSelectVehicle(e.target.value)}

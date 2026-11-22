@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { AlertTriangle, Download, Gauge, Plus, Search } from 'lucide-react';
+import { TableViewport } from '../components/TableViewport';
 import { Modal } from '../components/Modal';
 import { useFleet } from '../store/FleetContext';
 import { RouteState, TireRecord, TireStatus } from '../types/fleet';
@@ -150,10 +151,10 @@ export const TiresView: React.FC<TiresViewProps> = ({ onNavigate, initialQuery }
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900">
-            Control de Llantas y Neumáticos
+            Llantas
           </h1>
           <p className="mt-0.5 text-sm text-slate-500">
-            Seguimiento de profundidad de banda (mm), presión PSI, rotaciones y desgaste OTR/volquetes (TP-PER-015).
+            Posición, profundidad de banda, presión y horas de uso.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -214,7 +215,7 @@ export const TiresView: React.FC<TiresViewProps> = ({ onNavigate, initialQuery }
 
       {/* Filter Bar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-slate-100/80 p-1">
+        <div className="vektor-tabs" role="group" aria-label="Vistas disponibles">
           {STATUS_FILTERS.map((st) => {
             const count =
               st === 'Todas'
@@ -226,6 +227,7 @@ export const TiresView: React.FC<TiresViewProps> = ({ onNavigate, initialQuery }
                 key={st}
                 type="button"
                 onClick={() => setStatusFilter(st)}
+                aria-pressed={statusFilter === st}
                 className={`rounded px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap ${
                   active ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
@@ -249,119 +251,130 @@ export const TiresView: React.FC<TiresViewProps> = ({ onNavigate, initialQuery }
       </div>
 
       {/* Data Grid */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full border-collapse text-left text-xs">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-              <th className="px-4 py-2.5 font-medium">Serial / Marca</th>
-              <th className="px-4 py-2.5 font-medium">Unidad y Posición</th>
-              <th className="px-4 py-2.5 text-right font-medium">Banda (mm)</th>
-              <th className="px-4 py-2.5 text-right font-medium">Presión (PSI)</th>
-              <th className="px-4 py-2.5 text-right font-medium">Horas / Costo</th>
-              <th className="px-4 py-2.5 font-medium">Estado</th>
-              <th className="px-4 py-2.5 text-right font-medium">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {filtered.map((tire) => {
-              const veh = state.vehicles.find((v) => v.id === tire.vehicleId);
-              const isWorn = tire.treadDepthMm <= tire.minTreadMm && tire.status === 'Montada';
-              const lowPressure =
-                tire.status === 'Montada' && tire.pressurePsi < tire.targetPsi * 0.9;
-              return (
-                <tr key={tire.id} className="hover:bg-slate-50/70">
-                  <td className="px-4 py-3">
-                    <div className="font-mono font-semibold text-slate-900">{tire.serial}</div>
-                    <div className="text-[11px] text-slate-500">
-                      {tire.brand} · {tire.size}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    {veh ? (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onNavigate({
-                            section: 'vehicle-detail',
-                            selectedVehicleId: veh.id,
-                            selectedVehicleTab: 'resumen',
-                          })
-                        }
-                        className="font-semibold text-slate-900 hover:text-blue-700"
-                      >
-                        {veh.code} · {veh.make} {veh.model}
-                      </button>
-                    ) : (
-                      <span className="font-medium text-slate-600">Almacén Central</span>
-                    )}
-                    <div className="text-[11px] text-slate-500">{tire.axlePosition}</div>
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
-                    <div className={isWorn ? 'font-semibold text-red-700' : 'font-medium text-slate-900'}>
-                      {tire.treadDepthMm.toFixed(1)} mm
-                    </div>
-                    <div className="text-[11px] text-slate-400">Mín. {tire.minTreadMm} mm</div>
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
-                    <div className={lowPressure ? 'font-semibold text-amber-700' : 'text-slate-800'}>
-                      {tire.pressurePsi} PSI
-                    </div>
-                    <div className="text-[11px] text-slate-400">Obj. {tire.targetPsi} PSI</div>
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
-                    <div className="text-slate-800">{formatHours(tire.hoursUsed)}</div>
-                    <div className="text-[11px] text-slate-500">
-                      {formatCurrency(tire.unitCost, state.settings.currency)}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className={tireStatusTextClass(tire.status)}>{tire.status}</div>
-                    <div className="font-mono text-[11px] text-slate-400">
-                      Insp. {formatDate(tire.lastInspectedAt)}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">
-                    <div className="inline-flex items-center gap-2">
-                      <button
-                        type="button"
-                        disabled={!can('tires:manage')}
-                        onClick={() => {
-                          setInspectTarget(tire);
-                          setInspectMm(tire.treadDepthMm);
-                          setInspectPsi(tire.pressurePsi);
-                          setInspectStatus(tire.status);
-                        }}
-                        className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 whitespace-nowrap"
-                      >
-                        <Gauge className="h-3 w-3" />
-                        Inspeccionar
-                      </button>
-                      {isWorn && veh && (
+      <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <TableViewport label="Llantas registradas">
+          <table className="vektor-data-table" style={{ minWidth: 820 }} aria-label="Llantas registradas">
+            <colgroup>
+              <col style={{ width: 140 }} />
+              <col />
+              <col style={{ width: 95 }} />
+              <col style={{ width: 100 }} />
+              <col style={{ width: 110 }} />
+              <col style={{ width: 95 }} />
+              <col style={{ width: 115 }} />
+            </colgroup>
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                <th scope="col" className="px-4 py-2.5 font-medium">Serie y marca</th>
+                <th scope="col" className="px-4 py-2.5 font-medium">Equipo y posición</th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">Banda (mm)</th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">Presión (PSI)</th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">Horas y costo</th>
+                <th scope="col" className="px-4 py-2.5 font-medium">Estado</th>
+                <th scope="col" className="px-4 py-2.5 text-right font-medium">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filtered.map((tire) => {
+                const veh = state.vehicles.find((v) => v.id === tire.vehicleId);
+                const isWorn = tire.treadDepthMm <= tire.minTreadMm && tire.status === 'Montada';
+                const lowPressure =
+                  tire.status === 'Montada' && tire.pressurePsi < tire.targetPsi * 0.9;
+                return (
+                  <tr key={tire.id} className="hover:bg-slate-50/70">
+                    <td className="px-4 py-3">
+                      <div className="font-mono font-semibold text-slate-900">{tire.serial}</div>
+                      <div className="text-[11px] text-slate-500">
+                        {tire.brand} · {tire.size}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {veh ? (
                         <button
                           type="button"
-                          disabled={!can('issue:create')}
-                          onClick={() => {
-                            addIssue({
-                              vehicleId: veh.id,
-                              title: `Reemplazo de llanta ${tire.serial} (${tire.axlePosition})`,
-                              description: `Profundidad crítica de ${tire.treadDepthMm} mm (mínimo ${tire.minTreadMm} mm) detectada en control de llantas.`,
-                              category: 'Llantas',
-                              priority: 'Alta',
-                            });
-                          }}
-                          className="inline-flex items-center gap-1 rounded border border-red-200 bg-red-50/60 px-2 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100/70 disabled:opacity-40 whitespace-nowrap"
+                          onClick={() =>
+                            onNavigate({
+                              section: 'vehicle-detail',
+                              selectedVehicleId: veh.id,
+                              selectedVehicleTab: 'resumen',
+                            })
+                          }
+                          className="font-semibold text-slate-900 hover:text-blue-700"
                         >
-                          <AlertTriangle className="h-3 w-3" />
-                          Reportar
+                          {veh.code} · {veh.make} {veh.model}
                         </button>
+                      ) : (
+                        <span className="font-medium text-slate-600">Almacén Central</span>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                      <div className="text-[11px] text-slate-500">{tire.axlePosition}</div>
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
+                      <div className={isWorn ? 'font-semibold text-red-700' : 'font-medium text-slate-900'}>
+                        {tire.treadDepthMm.toFixed(1)} mm
+                      </div>
+                      <div className="text-[11px] text-slate-400">Mín. {tire.minTreadMm} mm</div>
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
+                      <div className={lowPressure ? 'font-semibold text-amber-700' : 'text-slate-800'}>
+                        {tire.pressurePsi} PSI
+                      </div>
+                      <div className="text-[11px] text-slate-400">Obj. {tire.targetPsi} PSI</div>
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
+                      <div className="text-slate-800">{formatHours(tire.hoursUsed)}</div>
+                      <div className="text-[11px] text-slate-500">
+                        {formatCurrency(tire.unitCost, state.settings.currency)}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className={`vektor-status ${tireStatusTextClass(tire.status)}`}>{tire.status}</div>
+                      <div className="font-mono text-[11px] text-slate-400">
+                        Insp. {formatDate(tire.lastInspectedAt)}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <div className="inline-flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={!can('tires:manage')}
+                          onClick={() => {
+                            setInspectTarget(tire);
+                            setInspectMm(tire.treadDepthMm);
+                            setInspectPsi(tire.pressurePsi);
+                            setInspectStatus(tire.status);
+                          }}
+                          className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 whitespace-nowrap"
+                        >
+                          <Gauge className="h-3 w-3" />
+                          Inspeccionar
+                        </button>
+                        {isWorn && veh && (
+                          <button
+                            type="button"
+                            disabled={!can('issue:create')}
+                            onClick={() => {
+                              addIssue({
+                                vehicleId: veh.id,
+                                title: `Reemplazo de llanta ${tire.serial} (${tire.axlePosition})`,
+                                description: `Profundidad crítica de ${tire.treadDepthMm} mm (mínimo ${tire.minTreadMm} mm) detectada en control de llantas.`,
+                                category: 'Llantas',
+                                priority: 'Alta',
+                              });
+                            }}
+                            className="inline-flex items-center gap-1 rounded border border-red-200 bg-red-50/60 px-2 py-1 text-[11px] font-medium text-red-700 hover:bg-red-100/70 disabled:opacity-40 whitespace-nowrap"
+                          >
+                            <AlertTriangle className="h-3 w-3" />
+                            Reportar
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </TableViewport>
       </div>
 
       {/* Modal: Registrar Llanta */}

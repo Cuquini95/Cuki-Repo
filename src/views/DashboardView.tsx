@@ -42,10 +42,10 @@ const GROUPS: ('Todos' | FleetGroup)[] = [
   'Supervisión HSE y Campo',
 ];
 
-const ROLE_QUICK_ACTIONS: Record<UserRole, { label: string; section: RouteState['section'] }[]> = {
+const ROLE_QUICK_ACTIONS: Record<UserRole, { label: string; section: keyof typeof ACTION_ICONS }[]> = {
   gerencia: [
     { label: 'Compras y aprobaciones', section: 'purchasing' },
-    { label: 'Reportes TCO y Costos', section: 'reports' },
+    { label: 'Costos de flota', section: 'reports' },
     { label: 'Producción y despacho', section: 'operations' },
   ],
   coordinador: [
@@ -79,7 +79,7 @@ const ROLE_QUICK_ACTIONS: Record<UserRole, { label: string; section: RouteState[
     { label: 'Cargar Diésel', section: 'fuel' },
   ],
   readonly: [
-    { label: 'Reportes TCO', section: 'reports' },
+    { label: 'Costos de flota', section: 'reports' },
     { label: 'Auditoría V2', section: 'audit' },
     { label: 'Flota y Equipos', section: 'vehicles' },
   ],
@@ -282,11 +282,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onCrea
   const quickActions = [...otherWork, ...extraActions.filter((extra) =>
     !ROLE_QUICK_ACTIONS[role].some((action) => action.section === extra.section)
   )].slice(0, 4);
-  const primaryWorkIcon = ACTION_ICONS[primaryWork.section as keyof typeof ACTION_ICONS] ?? ArrowUpRight;
+  const PrimaryWorkIcon = ACTION_ICONS[primaryWork.section];
   const awaitingApproval = state.purchaseOrders.filter((order) =>
     order.status === 'Requisición' || order.status === 'Cotizada'
   ).length;
-  const PrimaryWorkIcon = primaryWorkIcon;
 
   return (
     <div className="vektor-dashboard space-y-5">
@@ -319,7 +318,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onCrea
             <span className="block text-base font-bold sm:text-xl">{primaryWork.label}</span>
             {role === 'gerencia' && (
               <span className="mt-1 block text-sm text-white/90">
-                {awaitingApproval ? `${awaitingApproval} OC pendientes de aprobación` : 'Sin OC pendientes de aprobación'}
+                {awaitingApproval === 0
+                  ? 'Sin OC pendientes de aprobación'
+                  : awaitingApproval === 1
+                    ? '1 OC pendiente de aprobación'
+                    : `${awaitingApproval} OC pendientes de aprobación`}
               </span>
             )}
           </span>
@@ -327,7 +330,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onCrea
         </button>
         <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
           {quickActions.map(({ label, section }) => {
-            const Icon = ACTION_ICONS[section as keyof typeof ACTION_ICONS] ?? ArrowUpRight;
+            const Icon = ACTION_ICONS[section];
             return (
               <button key={label} type="button" onClick={() => onNavigate({ section })}
                 className="flex min-w-0 flex-col items-start gap-2 rounded-xl border border-slate-200 bg-white px-3 py-3 text-left text-xs font-semibold text-slate-900 hover:border-blue-400 hover:bg-blue-50/30 sm:min-h-[84px] sm:flex-row sm:items-center sm:gap-3 sm:px-4 sm:text-sm">
@@ -374,7 +377,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onCrea
             className="inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 whitespace-nowrap shrink-0"
           >
             <SlidersHorizontal className="h-3.5 w-3.5" />
-            Personalizar widgets
+            Personalizar tablero
           </button>
       </div>
 
@@ -538,7 +541,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onCrea
             <section className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5">
               <div>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-slate-900">Estado de Vehículos</h2>
+                  <h2 className="text-sm font-semibold text-slate-900">Estado de los equipos</h2>
                   <button
                     type="button"
                     onClick={() => onNavigate({ section: 'vehicles' })}
@@ -568,7 +571,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onCrea
                     return (
                       <div key={statusLabel}>
                         <div className="flex items-center justify-between text-xs">
-                          <span className={vehicleStatusTextClass(statusLabel)}>{statusLabel}</span>
+                          <span className={`vektor-status ${vehicleStatusTextClass(statusLabel)}`}>{statusLabel}</span>
                           <span className="font-mono tabular-nums text-slate-700">
                             {count} · {pct}%
                           </span>
@@ -598,7 +601,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onCrea
         {isVisible('priority_issues') && (
           <section className="rounded-xl border border-slate-200 bg-white">
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-slate-200 px-5 py-3.5">
-              <h2 className="text-sm font-semibold text-slate-900">Incidencias Prioritarias</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Fallas prioritarias</h2>
               <button
                 type="button"
                 onClick={() => onNavigate({ section: 'issues' })}
@@ -648,7 +651,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onCrea
           <section className="rounded-xl border border-slate-200 bg-white">
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-slate-200 px-5 py-3.5">
               <h2 className="text-sm font-semibold text-slate-900">
-                Recordatorios Vencidos y Próximos
+                PM y renovaciones por atender
               </h2>
               <button
                 type="button"
@@ -682,7 +685,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onCrea
                       </div>
                     </div>
                     <div className="shrink-0 text-right text-xs">
-                      <div className={reminderStatusTextClass(rem.status)}>{rem.status}</div>
+                      <div className={`vektor-status ${reminderStatusTextClass(rem.status)}`}>{rem.status}</div>
                       <div className="font-mono tabular-nums text-slate-500">{rem.dueLabel}</div>
                     </div>
                   </li>
@@ -737,7 +740,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ onNavigate, onCrea
         {isVisible('recent_meters') && (
           <section className="rounded-xl border border-slate-200 bg-white">
             <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-slate-200 px-5 py-3.5">
-              <h2 className="text-sm font-semibold text-slate-900">Últimas Lecturas (Horómetro / Odómetro)</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Últimas lecturas</h2>
               <button
                 type="button"
                 onClick={() => onNavigate({ section: 'vehicles' })}

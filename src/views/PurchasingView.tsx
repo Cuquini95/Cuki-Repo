@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Check, CreditCard, Download, FileText, PackageCheck, Plus, Trash2 } from 'lucide-react';
+import { TableViewport } from '../components/TableViewport';
 import { Modal } from '../components/Modal';
 import { useFleet } from '../store/FleetContext';
 import { PurchaseOrder, PurchaseOrderItem, PurchaseOrderStatus, RouteState } from '../types/fleet';
@@ -174,10 +175,10 @@ export const PurchasingView: React.FC<PurchasingViewProps> = ({ onNavigate, init
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900">
-            Compras, Órdenes de Compra y Cuentas por Pagar
+            Compras
           </h1>
           <p className="mt-0.5 text-sm text-slate-500">
-            Flujo completo de requisición → aprobación Gerencia → recepción en Almacén (+kardex) → facturación y pago ACH (ITBMS 7%).
+            Solicitudes, aprobaciones, recepción y cuentas por pagar.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -237,7 +238,7 @@ export const PurchasingView: React.FC<PurchasingViewProps> = ({ onNavigate, init
       </section>
 
       {/* Segmented Pipeline Tabs */}
-      <div className="flex flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-slate-100/80 p-1">
+      <div className="vektor-tabs" role="group" aria-label="Vistas disponibles">
         {PIPELINE_TABS.map((tab) => {
           const count =
             tab === 'Todas'
@@ -249,6 +250,7 @@ export const PurchasingView: React.FC<PurchasingViewProps> = ({ onNavigate, init
               key={tab}
               type="button"
               onClick={() => setStatusFilter(tab)}
+              aria-pressed={statusFilter === tab}
               className={`rounded px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap ${
                 active ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
@@ -269,152 +271,162 @@ export const PurchasingView: React.FC<PurchasingViewProps> = ({ onNavigate, init
       />
 
       {/* Purchase Orders Table */}
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+      <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
         {filtered.length === 0 ? (
           <div className="px-6 py-10 text-center text-xs text-slate-500">
-            No hay órdenes de compra en el estado seleccionado.
+            Sin órdenes de compra para estos filtros.
           </div>
         ) : (
-          <table className="w-full border-collapse text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                <th className="px-4 py-2.5 font-medium">Folio / Fecha</th>
-                <th className="px-4 py-2.5 font-medium">Proveedor y Detalle</th>
-                <th className="px-4 py-2.5 font-medium">OT / Factura</th>
-                <th className="px-4 py-2.5 text-right font-medium">Total (ITBMS)</th>
-                <th className="px-4 py-2.5 font-medium">Estado</th>
-                <th className="px-4 py-2.5 text-right font-medium">Siguiente Paso</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.map((po) => {
-                const vendor = state.vendors.find((v) => v.id === po.vendorId);
-                const wo = state.workOrders.find((w) => w.id === po.workOrderId);
-                const totals = computePurchaseOrderTotal(po);
-                return (
-                  <tr key={po.id} className="hover:bg-slate-50/70">
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="font-mono font-semibold text-slate-900">{po.code}</div>
-                      <div className="font-mono text-[11px] text-slate-500">
-                        {formatDate(po.createdAt)} · Req: {formatDate(po.neededBy)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-slate-900">
-                        {vendor?.name || po.vendorId}
-                      </div>
-                      <div className="mt-0.5 text-[11px] text-slate-600">
-                        {po.items.map((it) => `${it.quantity}× ${it.description}`).join(' · ')}
-                      </div>
-                      <div className="mt-0.5 text-[11px] text-slate-400">
-                        Solicitó: {po.requestedBy}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-[11px] text-slate-600 whitespace-nowrap">
-                      {wo ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            onNavigate({ section: 'work-orders', selectedWorkOrderId: wo.id })
-                          }
-                          className="font-semibold text-blue-700 hover:underline"
-                        >
-                          {wo.code}
-                        </button>
-                      ) : (
-                        <span className="text-slate-400">Stock bodega</span>
-                      )}
-                      {po.invoiceNumber && (
-                        <div className="text-slate-800">
-                          Fac: {po.invoiceNumber}
-                          {po.invoiceDueDate ? ` · Vence ${formatDate(po.invoiceDueDate)}` : ''}
+          <TableViewport label="Órdenes de compra">
+            <table className="vektor-data-table vektor-mobile-cards" style={{ minWidth: 945 }} aria-label="Órdenes de compra" role="table">
+              <colgroup>
+                <col style={{ width: 135 }} />
+                <col />
+                <col style={{ width: 140 }} />
+                <col style={{ width: 110 }} />
+                <col style={{ width: 155 }} />
+                <col style={{ width: 140 }} />
+              </colgroup>
+              <thead role="rowgroup">
+                <tr role="row" className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 font-medium">OC y fecha</th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 font-medium">Proveedor y partidas</th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 font-medium">OT y factura</th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 text-right font-medium">Total (ITBMS)</th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 font-medium">Estado</th>
+                  <th role="columnheader" scope="col" className="px-4 py-2.5 text-right font-medium">Siguiente paso</th>
+                </tr>
+              </thead>
+              <tbody role="rowgroup" className="divide-y divide-slate-100">
+                {filtered.map((po) => {
+                  const vendor = state.vendors.find((v) => v.id === po.vendorId);
+                  const wo = state.workOrders.find((w) => w.id === po.workOrderId);
+                  const totals = computePurchaseOrderTotal(po);
+                  return (
+                    <tr role="row" key={po.id} className="hover:bg-slate-50/70">
+                      <td role="cell" data-label="Orden de compra" className="px-4 py-3 whitespace-nowrap">
+                        <div className="font-mono font-semibold text-slate-900">{po.code}</div>
+                        <div className="font-mono text-[11px] text-slate-500">
+                          {formatDate(po.createdAt)} · Req: {formatDate(po.neededBy)}
                         </div>
-                      )}
-                      {po.paymentRef && (
-                        <div className="text-emerald-700">Pago: {po.paymentRef}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
-                      <div className="font-semibold text-slate-900">
-                        {formatCurrency(totals.total, state.settings.currency)}
-                      </div>
-                      <div className="text-[11px] text-slate-400">
-                        Sub {formatCurrency(totals.subtotal, state.settings.currency)}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className={purchaseOrderStatusTextClass(po.status)}>{po.status}</div>
-                      {po.receivedAt && (
-                        <div className="font-mono text-[11px] text-slate-400">
-                          Rec. {formatDate(po.receivedAt)}
+                      </td>
+                      <td role="cell" data-label="Proveedor y partidas" data-card-wide className="px-4 py-3">
+                        <div className="font-semibold text-slate-900">
+                          {vendor?.name || po.vendorId}
                         </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      {(po.status === 'Requisición' || po.status === 'Cotizada') && (
-                        <button
-                          type="button"
-                          disabled={!can('purchasing:approve')}
-                          onClick={() => approvePurchaseOrder(po.id)}
-                          className="inline-flex items-center gap-1 rounded bg-blue-700 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 whitespace-nowrap"
-                        >
-                          <Check className="h-3 w-3" />
-                          Aprobar OC
-                        </button>
-                      )}
-                      {po.status === 'Aprobada' && (
-                        <button
-                          type="button"
-                          disabled={!can('purchasing:receive')}
-                          onClick={() => receivePurchaseOrder(po.id)}
-                          className="inline-flex items-center gap-1 rounded bg-emerald-700 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300 whitespace-nowrap"
-                        >
-                          <PackageCheck className="h-3.5 w-3.5" />
-                          Recibir (+Stock)
-                        </button>
-                      )}
-                      {po.status === 'Recibida en Almacén' && (
-                        <button
-                          type="button"
-                          disabled={!can('purchasing:receive') && !can('purchasing:pay')}
-                          onClick={() => {
-                            setInvoiceTarget(po);
-                            setInvoiceNumber(`FAC-PA-${Math.floor(1000 + Math.random() * 9000)}`);
-                            const due = new Date();
-                            due.setDate(due.getDate() + 30);
-                            setInvoiceDueDate(due.toISOString().slice(0, 10));
-                          }}
-                          className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 whitespace-nowrap"
-                        >
-                          <FileText className="h-3 w-3" />
-                          Registrar Factura
-                        </button>
-                      )}
-                      {po.status === 'Facturada / Por Pagar' && (
-                        <button
-                          type="button"
-                          disabled={!can('purchasing:pay')}
-                          onClick={() => {
-                            setPayTarget(po);
-                            setPaymentRef(`ACH-BG-${new Date().getFullYear()}-${po.code.slice(-3)}`);
-                          }}
-                          className="inline-flex items-center gap-1 rounded bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 whitespace-nowrap"
-                        >
-                          <CreditCard className="h-3 w-3" />
-                          Pagar ACH
-                        </button>
-                      )}
-                      {po.status === 'Pagada' && (
-                        <span className="font-mono text-[11px] text-slate-400">
-                          Pagada {formatDate(po.paidAt)}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                        <div className="mt-0.5 text-[11px] text-slate-600">
+                          {po.items.map((it) => `${it.quantity}× ${it.description}`).join(' · ')}
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-slate-400">
+                          Solicitó: {po.requestedBy}
+                        </div>
+                      </td>
+                      <td role="cell" data-label="OT y factura" className="px-4 py-3 font-mono text-[11px] text-slate-600 whitespace-nowrap">
+                        {wo ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              onNavigate({ section: 'work-orders', selectedWorkOrderId: wo.id })
+                            }
+                            className="font-semibold text-blue-700 hover:underline"
+                          >
+                            {wo.code}
+                          </button>
+                        ) : (
+                          <span className="text-slate-400">Stock bodega</span>
+                        )}
+                        {po.invoiceNumber && (
+                          <div className="text-slate-800">
+                            Fac: {po.invoiceNumber}
+                            {po.invoiceDueDate ? ` · Vence ${formatDate(po.invoiceDueDate)}` : ''}
+                          </div>
+                        )}
+                        {po.paymentRef && (
+                          <div className="text-emerald-700">Pago: {po.paymentRef}</div>
+                        )}
+                      </td>
+                      <td role="cell" data-label="Total con ITBMS" className="px-4 py-3 text-right font-mono tabular-nums whitespace-nowrap">
+                        <div className="font-semibold text-slate-900">
+                          {formatCurrency(totals.total, state.settings.currency)}
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          Sub {formatCurrency(totals.subtotal, state.settings.currency)}
+                        </div>
+                      </td>
+                      <td role="cell" data-label="Estado" className="px-4 py-3 whitespace-nowrap">
+                        <div className={`vektor-status ${purchaseOrderStatusTextClass(po.status)}`}>{po.status}</div>
+                        {po.receivedAt && (
+                          <div className="font-mono text-[11px] text-slate-400">
+                            Rec. {formatDate(po.receivedAt)}
+                          </div>
+                        )}
+                      </td>
+                      <td role="cell" data-card-wide className="px-4 py-3 text-right whitespace-nowrap">
+                        {(po.status === 'Requisición' || po.status === 'Cotizada') && (
+                          <button
+                            type="button"
+                            disabled={!can('purchasing:approve')}
+                            onClick={() => approvePurchaseOrder(po.id)}
+                            className="inline-flex items-center gap-1 rounded bg-blue-700 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300 whitespace-nowrap"
+                          >
+                            <Check className="h-3 w-3" />
+                            Aprobar OC
+                          </button>
+                        )}
+                        {po.status === 'Aprobada' && (
+                          <button
+                            type="button"
+                            disabled={!can('purchasing:receive')}
+                            onClick={() => receivePurchaseOrder(po.id)}
+                            className="inline-flex items-center gap-1 rounded bg-emerald-700 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-300 whitespace-nowrap"
+                          >
+                            <PackageCheck className="h-3.5 w-3.5" />
+                            Registrar recepción
+                          </button>
+                        )}
+                        {po.status === 'Recibida en Almacén' && (
+                          <button
+                            type="button"
+                            disabled={!can('purchasing:receive') && !can('purchasing:pay')}
+                            onClick={() => {
+                              setInvoiceTarget(po);
+                              setInvoiceNumber(`FAC-PA-${Math.floor(1000 + Math.random() * 9000)}`);
+                              const due = new Date();
+                              due.setDate(due.getDate() + 30);
+                              setInvoiceDueDate(due.toISOString().slice(0, 10));
+                            }}
+                            className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-800 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 whitespace-nowrap"
+                          >
+                            <FileText className="h-3 w-3" />
+                            Registrar Factura
+                          </button>
+                        )}
+                        {po.status === 'Facturada / Por Pagar' && (
+                          <button
+                            type="button"
+                            disabled={!can('purchasing:pay')}
+                            onClick={() => {
+                              setPayTarget(po);
+                              setPaymentRef(`ACH-BG-${new Date().getFullYear()}-${po.code.slice(-3)}`);
+                            }}
+                            className="inline-flex items-center gap-1 rounded bg-slate-900 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 whitespace-nowrap"
+                          >
+                            <CreditCard className="h-3 w-3" />
+                            Pagar ACH
+                          </button>
+                        )}
+                        {po.status === 'Pagada' && (
+                          <span className="font-mono text-[11px] text-slate-400">
+                            Pagada {formatDate(po.paidAt)}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </TableViewport>
         )}
       </div>
 

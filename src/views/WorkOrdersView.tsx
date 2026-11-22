@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, CheckCircle2, Lock, Plus, RotateCcw, Search, Trash2, Truck } from 'lucide-react';
+import { TableViewport } from '../components/TableViewport';
 import { Modal } from '../components/Modal';
 import { useFleet } from '../store/FleetContext';
 import { FailureCategory, IssuePriority, RouteState, WorkOrderStatusKey } from '../types/fleet';
@@ -218,7 +219,7 @@ export const WorkOrdersView: React.FC<WorkOrdersViewProps> = ({
               className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-900"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              Volver a Órdenes de Trabajo
+              Volver a órdenes de trabajo
             </button>
             <div className="mt-2 flex flex-wrap items-baseline gap-3">
               <h1 className="text-xl font-bold tracking-tight text-slate-900">
@@ -355,60 +356,70 @@ export const WorkOrdersView: React.FC<WorkOrdersViewProps> = ({
               <div className="border-b border-slate-200 px-5 py-3.5">
                 <h2 className="text-sm font-semibold text-slate-900">Mano de Obra</h2>
               </div>
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500">
-                    <th className="px-5 py-2 font-medium">Tarea</th>
-                    <th className="px-5 py-2 font-medium">Técnico</th>
-                    <th className="px-5 py-2 text-right font-medium">Horas</th>
-                    <th className="px-5 py-2 text-right font-medium">Tarifa/h</th>
-                    <th className="px-5 py-2 text-right font-medium">Subtotal</th>
-                    {editable && <th className="w-10 px-3 py-2" />}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {selectedWo.laborItems.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-5 py-6 text-center text-slate-400">
-                        Sin líneas de mano de obra registradas.
-                      </td>
+              <TableViewport label="Mano de obra de la orden">
+                <table className="vektor-data-table" style={{ minWidth: 608 }} aria-label="Mano de obra de la orden">
+                  <colgroup>
+                    <col />
+                    <col style={{ width: 135 }} />
+                    <col style={{ width: 75 }} />
+                    <col style={{ width: 85 }} />
+                    <col style={{ width: 90 }} />
+                    <col style={{ width: 48 }} />
+                  </colgroup>
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500">
+                      <th scope="col" className="px-5 py-2 font-medium">Tarea</th>
+                      <th scope="col" className="px-5 py-2 font-medium">Técnico</th>
+                      <th scope="col" className="px-5 py-2 text-right font-medium">Horas</th>
+                      <th scope="col" className="px-5 py-2 text-right font-medium">Tarifa/h</th>
+                      <th scope="col" className="px-5 py-2 text-right font-medium">Subtotal</th>
+                      {editable && <th scope="col" className="w-10 px-3 py-2" />}
                     </tr>
-                  ) : (
-                    selectedWo.laborItems.map((lab) => {
-                      const tech = state.contacts.find((c) => c.id === lab.technicianId);
-                      return (
-                        <tr key={lab.id}>
-                          <td className="px-5 py-2.5 font-medium text-slate-900">{lab.taskName}</td>
-                          <td className="px-5 py-2.5 text-slate-600">{tech?.name || '—'}</td>
-                          <td className="px-5 py-2.5 text-right font-mono tabular-nums">{lab.hours}</td>
-                          <td className="px-5 py-2.5 text-right font-mono tabular-nums text-slate-600">
-                            {formatCurrency(lab.hourlyRate, state.settings.currency)}
-                          </td>
-                          <td className="px-5 py-2.5 text-right font-mono font-medium tabular-nums text-slate-900">
-                            {formatCurrency(lab.hours * lab.hourlyRate, state.settings.currency)}
-                          </td>
-                          {editable && (
-                            <td className="px-3 py-2.5 text-right">
-                              <button
-                                type="button"
-                                aria-label="Quitar línea de mano de obra"
-                                onClick={() =>
-                                  updateWorkOrder(selectedWo.id, {
-                                    laborItems: selectedWo.laborItems.filter((l) => l.id !== lab.id),
-                                  })
-                                }
-                                className="text-slate-400 hover:text-red-700"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {selectedWo.laborItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-5 py-6 text-center text-slate-400">
+                          Sin líneas de mano de obra registradas.
+                        </td>
+                      </tr>
+                    ) : (
+                      selectedWo.laborItems.map((lab) => {
+                        const tech = state.contacts.find((c) => c.id === lab.technicianId);
+                        return (
+                          <tr key={lab.id}>
+                            <td className="px-5 py-2.5 font-medium text-slate-900">{lab.taskName}</td>
+                            <td className="px-5 py-2.5 text-slate-600">{tech?.name || '—'}</td>
+                            <td className="px-5 py-2.5 text-right font-mono tabular-nums">{lab.hours}</td>
+                            <td className="px-5 py-2.5 text-right font-mono tabular-nums text-slate-600">
+                              {formatCurrency(lab.hourlyRate, state.settings.currency)}
                             </td>
-                          )}
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+                            <td className="px-5 py-2.5 text-right font-mono font-medium tabular-nums text-slate-900">
+                              {formatCurrency(lab.hours * lab.hourlyRate, state.settings.currency)}
+                            </td>
+                            {editable && (
+                              <td className="px-3 py-2.5 text-right">
+                                <button
+                                  type="button"
+                                  aria-label="Quitar línea de mano de obra"
+                                  onClick={() =>
+                                    updateWorkOrder(selectedWo.id, {
+                                      laborItems: selectedWo.laborItems.filter((l) => l.id !== lab.id),
+                                    })
+                                  }
+                                  className="text-slate-400 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </TableViewport>
 
               {editable && (
                 <form
@@ -455,77 +466,87 @@ export const WorkOrdersView: React.FC<WorkOrdersViewProps> = ({
             {/* Parts Line Items */}
             <section className="rounded-lg border border-slate-200 bg-white">
               <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3.5">
-                <h2 className="text-sm font-semibold text-slate-900">Repuestos de Inventario</h2>
+                <h2 className="text-sm font-semibold text-slate-900">Repuestos</h2>
                 <span className="text-xs text-slate-500">
                   Se descuentan automáticamente al completar la orden
                 </span>
               </div>
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500">
-                    <th className="px-5 py-2 font-medium">Repuesto (SKU)</th>
-                    <th className="px-5 py-2 text-right font-medium">Stock Actual</th>
-                    <th className="px-5 py-2 text-right font-medium">Cantidad</th>
-                    <th className="px-5 py-2 text-right font-medium">Costo Unit.</th>
-                    <th className="px-5 py-2 text-right font-medium">Subtotal</th>
-                    {editable && <th className="w-10 px-3 py-2" />}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {selectedWo.partItems.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-5 py-6 text-center text-slate-400">
-                        Sin repuestos asignados.
-                      </td>
+              <TableViewport label="Repuestos de la orden">
+                <table className="vektor-data-table" style={{ minWidth: 628 }} aria-label="Repuestos de la orden">
+                  <colgroup>
+                    <col />
+                    <col style={{ width: 90 }} />
+                    <col style={{ width: 90 }} />
+                    <col style={{ width: 100 }} />
+                    <col style={{ width: 100 }} />
+                    <col style={{ width: 48 }} />
+                  </colgroup>
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/70 text-slate-500">
+                      <th scope="col" className="px-5 py-2 font-medium">Repuesto (SKU)</th>
+                      <th scope="col" className="px-5 py-2 text-right font-medium">Stock actual</th>
+                      <th scope="col" className="px-5 py-2 text-right font-medium">Cantidad</th>
+                      <th scope="col" className="px-5 py-2 text-right font-medium">Costo unitario</th>
+                      <th scope="col" className="px-5 py-2 text-right font-medium">Subtotal</th>
+                      {editable && <th scope="col" className="w-10 px-3 py-2" />}
                     </tr>
-                  ) : (
-                    selectedWo.partItems.map((pi) => {
-                      const part = state.parts.find((p) => p.id === pi.partId);
-                      const insufficient = !selectedWo.inventoryDeducted && part && part.quantityOnHand < pi.quantity;
-                      return (
-                        <tr key={pi.id}>
-                          <td className="px-5 py-2.5">
-                            <div className="font-medium text-slate-900">{part?.name || pi.partId}</div>
-                            <div className="font-mono text-[11px] text-slate-500">{part?.sku}</div>
-                          </td>
-                          <td
-                            className={`px-5 py-2.5 text-right font-mono tabular-nums ${
-                              insufficient ? 'font-semibold text-red-700' : 'text-slate-600'
-                            }`}
-                          >
-                            {part ? `${part.quantityOnHand} uds` : '—'}
-                          </td>
-                          <td className="px-5 py-2.5 text-right font-mono tabular-nums text-slate-900">
-                            {pi.quantity}
-                          </td>
-                          <td className="px-5 py-2.5 text-right font-mono tabular-nums text-slate-600">
-                            {formatCurrency(pi.unitCost, state.settings.currency)}
-                          </td>
-                          <td className="px-5 py-2.5 text-right font-mono font-medium tabular-nums text-slate-900">
-                            {formatCurrency(pi.quantity * pi.unitCost, state.settings.currency)}
-                          </td>
-                          {editable && (
-                            <td className="px-3 py-2.5 text-right">
-                              <button
-                                type="button"
-                                aria-label="Quitar repuesto"
-                                onClick={() =>
-                                  updateWorkOrder(selectedWo.id, {
-                                    partItems: selectedWo.partItems.filter((p) => p.id !== pi.id),
-                                  })
-                                }
-                                className="text-slate-400 hover:text-red-700"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {selectedWo.partItems.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-5 py-6 text-center text-slate-400">
+                          Sin repuestos asignados.
+                        </td>
+                      </tr>
+                    ) : (
+                      selectedWo.partItems.map((pi) => {
+                        const part = state.parts.find((p) => p.id === pi.partId);
+                        const insufficient = !selectedWo.inventoryDeducted && part && part.quantityOnHand < pi.quantity;
+                        return (
+                          <tr key={pi.id}>
+                            <td className="px-5 py-2.5">
+                              <div className="font-medium text-slate-900">{part?.name || pi.partId}</div>
+                              <div className="font-mono text-[11px] text-slate-500">{part?.sku}</div>
                             </td>
-                          )}
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
+                            <td
+                              className={`px-5 py-2.5 text-right font-mono tabular-nums ${
+                                insufficient ? 'font-semibold text-red-700' : 'text-slate-600'
+                              }`}
+                            >
+                              {part ? `${part.quantityOnHand} uds` : '—'}
+                            </td>
+                            <td className="px-5 py-2.5 text-right font-mono tabular-nums text-slate-900">
+                              {pi.quantity}
+                            </td>
+                            <td className="px-5 py-2.5 text-right font-mono tabular-nums text-slate-600">
+                              {formatCurrency(pi.unitCost, state.settings.currency)}
+                            </td>
+                            <td className="px-5 py-2.5 text-right font-mono font-medium tabular-nums text-slate-900">
+                              {formatCurrency(pi.quantity * pi.unitCost, state.settings.currency)}
+                            </td>
+                            {editable && (
+                              <td className="px-3 py-2.5 text-right">
+                                <button
+                                  type="button"
+                                  aria-label="Quitar repuesto"
+                                  onClick={() =>
+                                    updateWorkOrder(selectedWo.id, {
+                                      partItems: selectedWo.partItems.filter((p) => p.id !== pi.id),
+                                    })
+                                  }
+                                  className="text-slate-400 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </TableViewport>
 
               {editable && (
                 <form
@@ -628,7 +649,7 @@ export const WorkOrdersView: React.FC<WorkOrdersViewProps> = ({
           {/* Right Col: Cost Summary */}
           <aside className="space-y-5">
             <section className="rounded-lg border border-slate-200 bg-white p-5 text-xs">
-              <h2 className="text-sm font-semibold text-slate-900">Resumen Financiero</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Costos de la orden</h2>
               <div className="mt-4 space-y-2.5">
                 <div className="flex justify-between text-slate-600">
                   <span>Subtotal Mano de Obra</span>
@@ -676,7 +697,7 @@ export const WorkOrdersView: React.FC<WorkOrdersViewProps> = ({
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-5 text-xs">
-              <h2 className="text-sm font-semibold text-slate-900">Detalles de Taller</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Trabajo y taller</h2>
               <dl className="mt-3 space-y-2.5">
                 <div>
                   <dt className="text-slate-500">Taller / Proveedor</dt>
@@ -884,7 +905,7 @@ export const WorkOrdersView: React.FC<WorkOrdersViewProps> = ({
       <Modal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="Crear Nueva Orden de Trabajo"
+        title="Nueva orden de trabajo"
         subtitle="La unidad cambiará automáticamente a estado En taller."
         footer={
           <>
@@ -900,7 +921,7 @@ export const WorkOrdersView: React.FC<WorkOrdersViewProps> = ({
               form="create-wo-form"
               className="rounded-md bg-blue-700 px-4 py-2 text-xs font-medium text-white hover:bg-blue-800"
             >
-              Crear y Abrir Editor
+              Crear y abrir orden
             </button>
           </>
         }

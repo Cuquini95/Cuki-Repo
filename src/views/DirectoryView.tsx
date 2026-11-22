@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
+import { TableViewport } from '../components/TableViewport';
 import { Modal } from '../components/Modal';
 import { useFleet } from '../store/FleetContext';
 import { ContactRole, FleetGroup, VendorType } from '../types/fleet';
@@ -98,9 +99,9 @@ export const DirectoryView: React.FC = () => {
     <div className="space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">Directorio Operativo</h1>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900">Directorio</h1>
           <p className="mt-0.5 text-sm text-slate-500">
-            Operadores, técnicos con tarifa de mano de obra y catálogo de talleres, estaciones y proveedores.
+            Personal, talleres y proveedores.
           </p>
         </div>
         <button
@@ -114,10 +115,11 @@ export const DirectoryView: React.FC = () => {
         </button>
       </div>
 
-      <div className="flex items-center gap-1 rounded-md border border-slate-200 bg-slate-100/80 p-1 w-fit">
+      <div className="vektor-tabs" role="group" aria-label="Vistas disponibles">
         <button
           type="button"
           onClick={() => setSubTab('contacts')}
+          aria-pressed={subTab === 'contacts'}
           className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
             subTab === 'contacts' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
           }`}
@@ -128,6 +130,7 @@ export const DirectoryView: React.FC = () => {
         <button
           type="button"
           onClick={() => setSubTab('vendors')}
+          aria-pressed={subTab === 'vendors'}
           className={`rounded px-3 py-1.5 text-xs font-medium transition-colors ${
             subTab === 'vendors' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
           }`}
@@ -138,86 +141,106 @@ export const DirectoryView: React.FC = () => {
       </div>
 
       {subTab === 'contacts' ? (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                <th className="px-4 py-2.5 font-medium">Nombre</th>
-                <th className="px-4 py-2.5 font-medium">Rol</th>
-                <th className="px-4 py-2.5 font-medium">Grupo</th>
-                <th className="px-4 py-2.5 font-medium">Contacto</th>
-                <th className="px-4 py-2.5 font-medium">Licencia / Tarifa</th>
-                <th className="px-4 py-2.5 text-right font-medium">Unidades Asignadas</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {state.contacts.map((cnt) => {
-                const assignedCount = state.vehicles.filter(
-                  (v) => v.assignedOperatorId === cnt.id
-                ).length;
-                return (
-                  <tr key={cnt.id} className="hover:bg-slate-50/70">
-                    <td className="px-4 py-3">
-                      <div className="font-semibold text-slate-900">{cnt.name}</div>
-                      <div className="font-mono text-[11px] text-slate-400">{cnt.positionCode}</div>
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">{cnt.role}</td>
-                    <td className="px-4 py-3 text-slate-600">{cnt.group}</td>
-                    <td className="px-4 py-3 text-slate-600">
-                      <div>{cnt.email}</div>
-                      <div className="font-mono text-[11px] text-slate-400">{cnt.phone}</div>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-[11px] text-slate-700">
-                      {(cnt.role === 'Mecánico' || cnt.role === 'Jefe de Taller') && cnt.hourlyRate
-                        ? `${formatCurrency(cnt.hourlyRate, state.settings.currency)}/h`
-                        : cnt.licenseNumber
-                        ? `${cnt.licenseNumber} · Vence ${formatDate(cnt.licenseExpiry)}`
-                        : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-900">
-                      {assignedCount}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <TableViewport label="Personal">
+            <table className="vektor-data-table" style={{ minWidth: 925 }} aria-label="Personal">
+              <colgroup>
+                <col style={{ width: 190 }} />
+                <col style={{ width: 120 }} />
+                <col style={{ width: 180 }} />
+                <col />
+                <col style={{ width: 105 }} />
+                <col style={{ width: 110 }} />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                  <th scope="col" className="px-4 py-2.5 font-medium">Nombre</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Rol</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Grupo</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Contacto</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Licencia / Tarifa</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Equipos asignados</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {state.contacts.map((cnt) => {
+                  const assignedCount = state.vehicles.filter(
+                    (v) => v.assignedOperatorId === cnt.id
+                  ).length;
+                  return (
+                    <tr key={cnt.id} className="hover:bg-slate-50/70">
+                      <td className="px-4 py-3">
+                        <div className="font-semibold text-slate-900">{cnt.name}</div>
+                        <div className="font-mono text-[11px] text-slate-400">{cnt.positionCode}</div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-700">{cnt.role}</td>
+                      <td className="px-4 py-3 text-slate-600">{cnt.group}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        <div>{cnt.email}</div>
+                        <div className="font-mono text-[11px] text-slate-400">{cnt.phone}</div>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-[11px] text-slate-700">
+                        {(cnt.role === 'Mecánico' || cnt.role === 'Jefe de Taller') && cnt.hourlyRate
+                          ? `${formatCurrency(cnt.hourlyRate, state.settings.currency)}/h`
+                          : cnt.licenseNumber
+                          ? `${cnt.licenseNumber} · Vence ${formatDate(cnt.licenseExpiry)}`
+                          : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-900">
+                        {assignedCount}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </TableViewport>
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
-                <th className="px-4 py-2.5 font-medium">Proveedor</th>
-                <th className="px-4 py-2.5 font-medium">Clasificación</th>
-                <th className="px-4 py-2.5 font-medium">Contacto</th>
-                <th className="px-4 py-2.5 font-medium">Ciudad</th>
-                <th className="px-4 py-2.5 text-right font-medium">Calificación</th>
-                <th className="px-4 py-2.5 text-right font-medium">Gasto Acumulado</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {state.vendors.map((vnd) => (
-                <tr key={vnd.id} className="hover:bg-slate-50/70">
-                  <td className="px-4 py-3 font-semibold text-slate-900">{vnd.name}</td>
-                  <td className="px-4 py-3 text-slate-700">{vnd.type}</td>
-                  <td className="px-4 py-3 text-slate-600">
-                    <div>{vnd.contactName}</div>
-                    <div className="text-[11px] text-slate-400">
-                      {vnd.email} · {vnd.phone}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{vnd.city}</td>
-                  <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-800">
-                    {vnd.rating.toFixed(1)} / 5.0
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono font-medium tabular-nums text-slate-900">
-                    {formatCurrency(vendorSpend(vnd.id), state.settings.currency)}
-                  </td>
+        <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <TableViewport label="Proveedores">
+            <table className="vektor-data-table" style={{ minWidth: 875 }} aria-label="Proveedores">
+              <colgroup>
+                <col style={{ width: 190 }} />
+                <col style={{ width: 145 }} />
+                <col />
+                <col style={{ width: 125 }} />
+                <col style={{ width: 90 }} />
+                <col style={{ width: 125 }} />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/70 text-slate-500">
+                  <th scope="col" className="px-4 py-2.5 font-medium">Proveedor</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Clasificación</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Contacto</th>
+                  <th scope="col" className="px-4 py-2.5 font-medium">Ciudad</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Calificación</th>
+                  <th scope="col" className="px-4 py-2.5 text-right font-medium">Gasto acumulado</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {state.vendors.map((vnd) => (
+                  <tr key={vnd.id} className="hover:bg-slate-50/70">
+                    <td className="px-4 py-3 font-semibold text-slate-900">{vnd.name}</td>
+                    <td className="px-4 py-3 text-slate-700">{vnd.type}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      <div>{vnd.contactName}</div>
+                      <div className="text-[11px] text-slate-400">
+                        {vnd.email} · {vnd.phone}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">{vnd.city}</td>
+                    <td className="px-4 py-3 text-right font-mono tabular-nums text-slate-800">
+                      {vnd.rating.toFixed(1)} / 5.0
+                    </td>
+                    <td className="px-4 py-3 text-right font-mono font-medium tabular-nums text-slate-900">
+                      {formatCurrency(vendorSpend(vnd.id), state.settings.currency)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableViewport>
         </div>
       )}
 
